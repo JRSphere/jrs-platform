@@ -1,0 +1,59 @@
+﻿name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: jrsphere
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: jrs_platform_core
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - run: pnpm install
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test --run
+        env:
+          DATABASE_URL: postgresql://jrsphere:test_password@localhost:5432/jrs_platform_core
+          REDIS_URL: redis://localhost:6379
