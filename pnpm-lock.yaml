@@ -166,7 +166,11 @@ importers:
 
   .: {}
 
-  apps/api: {}
+  apps/api:
+    devDependencies:
+      '@types/bcrypt':
+        specifier: ^6.0.0
+        version: 6.0.0
 
   apps/web:
     dependencies:
@@ -581,6 +585,9 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  '@types/bcrypt@6.0.0':
+    resolution: {integrity: sha512-/oJGukuH3D2+D+3H4JWLaAsJ/ji86dhRidzZ/Od7H/i8g+aCmvkeCc6Ni/f9uxGLSQVCRZkX2/lqEFG2BvWtlQ==}
 
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
@@ -1208,6 +1215,10 @@ snapshots:
       react: 19.2.8
     optionalDependencies:
       '@types/react': 19.3.0
+
+  '@types/bcrypt@6.0.0':
+    dependencies:
+      '@types/node': 20.19.43
 
   '@types/node@20.19.43':
     dependencies:

@@ -11,9 +11,12 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "lint": "pnpm -r --if-present lint",
-    "typecheck": "pnpm -r --if-present typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "pnpm -r --if-present test",
     "dev:api": "pnpm --filter api start:dev",
     "dev:web": "pnpm --filter web dev"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0"
   }
 }

@@ -58,7 +58,7 @@ export class User {
   }
 
   getFullName(): string {
-    return \\ \\;
+    return `${this.firstName} ${this.lastName}`;
   }
 
   setRole(role: UserRole): void {
