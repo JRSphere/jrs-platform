@@ -1,28 +1,22 @@
-import * as bcrypt from 'bcrypt';
+import { ValidationException } from '../../../../shared-kernel/exceptions/ValidationException';
 
 export class Password {
-  readonly hash: string;
+  readonly plainValue: string;
 
-  private constructor(hash: string) {
-    this.hash = hash;
+  private constructor(plainValue: string) {
+    this.plainValue = plainValue;
   }
 
-  static async create(plainPassword: string): Promise<Password> {
+  static create(plainPassword: string): Password {
     if (plainPassword.length < 8) {
-      throw new Error('Password must be at least 8 characters');
+      throw new ValidationException('Password must be at least 8 characters');
     }
     if (!/[A-Z]/.test(plainPassword)) {
-      throw new Error('Password must contain uppercase letter');
+      throw new ValidationException('Password must contain an uppercase letter');
     }
     if (!/[0-9]/.test(plainPassword)) {
-      throw new Error('Password must contain number');
+      throw new ValidationException('Password must contain a number');
     }
-
-    const hash = await bcrypt.hash(plainPassword, 10);
-    return new Password(hash);
-  }
-
-  async verify(plainPassword: string): Promise<boolean> {
-    return bcrypt.compare(plainPassword, this.hash);
+    return new Password(plainPassword);
   }
 }
