@@ -1,20 +1,15 @@
 {
-  "name": "jrs-platform",
+  "name": "@jrs-platform/api",
   "version": "1.0.0",
-  "private": true,
-  "description": "JRSphere Office Platform - Internal Enterprise Management System",
-  "license": "UNLICENSED",
-  "packageManager": "pnpm@12.5.1",
-  "engines": {
-    "node": ">=20"
-  },
+  "private": "true",
   "scripts": {
-    "build": "pnpm -r --if-present build",
-    "lint": "pnpm -r --if-present lint",
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "echo 'lint: not configured yet' && exit 0",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "pnpm -r --if-present test",
+    "test": "echo 'test: no tests yet' && exit 0",
     "dev:api": "pnpm --filter api start:dev",
-    "dev:web": "pnpm --filter web dev"
+    "dev:web": "pnpm --filter web dev",
+    "start:dev": "nest start --watch"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0"
