@@ -1,12 +1,21 @@
 {
   "name": "jrs-platform",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "JRSphere Office Platform - Internal Enterprise Management System",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:web": "pnpm --filter web dev"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "UNLICENSED",
+  "private": "true",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=20"
+  }
 }
