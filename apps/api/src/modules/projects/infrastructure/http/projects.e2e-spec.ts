@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { PrismaService } from '../../../../infrastructure/prisma/PrismaService';
 import { AppModule } from '../../../../app.module';
 import { configureApp } from '../../../../infrastructure/http/configureApp';
+import { setupOpenApi } from '../../../../infrastructure/http/setupOpenApi';
 
 const databaseUrl = process.env.DATABASE_URL;
 const databaseName = databaseUrl
@@ -44,6 +45,7 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   app = moduleRef.createNestApplication();
   configureApp(app);
+  setupOpenApi(app);
   await app.init();
   prisma = app.get(PrismaService);
 });
@@ -58,6 +60,20 @@ beforeEach(async () => {
 });
 
 describe('Projects HTTP API', () => {
+  it('documents exactly the projects and tasks routes in OpenAPI', async () => {
+    const response = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
+    const pathMethods = Object.entries(response.body.paths).flatMap(([path, operations]) =>
+      Object.keys(operations as Record<string, unknown>).map((method) => `${method.toUpperCase()} ${path}`),
+    );
+    expect(pathMethods.sort()).toEqual([
+      'GET /api/v1/projects/{projectId}/tasks',
+      'PATCH /api/v1/tasks/{taskId}/assignee',
+      'PATCH /api/v1/tasks/{taskId}/status',
+      'POST /api/v1/projects',
+      'POST /api/v1/projects/{projectId}/tasks',
+    ]);
+  });
+
   it('creates a project', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/projects')
