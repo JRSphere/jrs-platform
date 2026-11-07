@@ -22,6 +22,12 @@ export interface RestoreTaskProps {
   updatedAt: Date;
 }
 
+export interface TaskDetailsChanges {
+  title?: string;
+  description?: string | null;
+  dueDate?: Date | null;
+}
+
 export class Task {
   readonly id: string;
   readonly projectId: string;
@@ -47,12 +53,7 @@ export class Task {
 
   static create(props: CreateTaskProps): Task {
     const title = props.title.trim();
-    if (title.length === 0) {
-      throw new ValidationException('Task title is required');
-    }
-    if (title.length > 255) {
-      throw new ValidationException('Task title cannot exceed 255 characters');
-    }
+    Task.validateTitle(title);
     if (props.projectId.trim().length === 0) {
       throw new ValidationException('Project ID is required');
     }
@@ -78,6 +79,32 @@ export class Task {
     return new Task(props);
   }
 
+  updateDetails(changes: TaskDetailsChanges): void {
+    if (
+      changes.title === undefined &&
+      changes.description === undefined &&
+      changes.dueDate === undefined
+    ) {
+      throw new ValidationException('At least one field must be provided');
+    }
+
+    const title = changes.title?.trim();
+    if (title !== undefined) {
+      Task.validateTitle(title);
+    }
+
+    if (title !== undefined) {
+      this.title = title;
+    }
+    if (changes.description !== undefined) {
+      this.description = changes.description;
+    }
+    if (changes.dueDate !== undefined) {
+      this.dueDate = changes.dueDate;
+    }
+    this.updatedAt = new Date();
+  }
+
   changeStatus(next: TaskStatus): void {
     if (!canTransition(this.status, next)) {
       throw new ValidationException(`Cannot move task from ${this.status} to ${next}`);
@@ -97,5 +124,14 @@ export class Task {
   unassign(): void {
     this.assigneeId = null;
     this.updatedAt = new Date();
+  }
+
+  private static validateTitle(title: string): void {
+    if (title.length === 0) {
+      throw new ValidationException('Task title is required');
+    }
+    if (title.length > 255) {
+      throw new ValidationException('Task title cannot exceed 255 characters');
+    }
   }
 }

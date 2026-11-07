@@ -128,4 +128,86 @@ describe('Task', () => {
       expect(task.updatedAt).toEqual(new Date('2024-01-02T00:00:00Z'));
     });
   });
+
+  describe('updateDetails', () => {
+    it('updates only the title', () => {
+      const task = createTask({ description: 'Details', dueDate: new Date('2024-01-01') });
+      task.updateDetails({ title: 'Updated' });
+      expect(task.title).toBe('Updated');
+      expect(task.description).toBe('Details');
+      expect(task.dueDate).toEqual(new Date('2024-01-01'));
+    });
+
+    it('updates only the description', () => {
+      const task = createTask();
+      task.updateDetails({ description: 'Details' });
+      expect(task.description).toBe('Details');
+    });
+
+    it('updates only the due date', () => {
+      const task = createTask();
+      const dueDate = new Date('2024-03-01T00:00:00Z');
+      task.updateDetails({ dueDate });
+      expect(task.dueDate).toBe(dueDate);
+    });
+
+    it('clears the description with null', () => {
+      const task = createTask({ description: 'Details' });
+      task.updateDetails({ description: null });
+      expect(task.description).toBeNull();
+    });
+
+    it('clears the due date with null', () => {
+      const task = createTask({ dueDate: new Date('2024-03-01T00:00:00Z') });
+      task.updateDetails({ dueDate: null });
+      expect(task.dueDate).toBeNull();
+    });
+
+    it('trims an updated title', () => {
+      const task = createTask();
+      task.updateDetails({ title: '  Updated  ' });
+      expect(task.title).toBe('Updated');
+    });
+
+    it.each(['', '   ', 't'.repeat(256)])('rejects invalid title %j', (title) => {
+      const task = createTask();
+      expect(() => task.updateDetails({ title })).toThrowError(ValidationException);
+    });
+
+    it('rejects empty changes', () => {
+      const task = createTask();
+      expect(() => task.updateDetails({})).toThrowError(ValidationException);
+    });
+
+    it('leaves every field and updatedAt unchanged when title validation fails', () => {
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+      const dueDate = new Date('2024-02-01T00:00:00Z');
+      const task = createTask({ description: 'Original', assigneeId: 'user-1', dueDate });
+      const original = {
+        id: task.id,
+        projectId: task.projectId,
+        title: task.title,
+        description: task.description,
+        assigneeId: task.assigneeId,
+        status: task.status,
+        dueDate: task.dueDate,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+      };
+      vi.setSystemTime(new Date('2024-01-02T00:00:00Z'));
+
+      expect(() =>
+        task.updateDetails({ title: '', description: null, dueDate: null }),
+      ).toThrowError(ValidationException);
+      expect(task).toEqual(original);
+    });
+
+    it('touches updatedAt once after a successful update', () => {
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+      const task = createTask();
+      vi.setSystemTime(new Date('2024-01-02T00:00:00Z'));
+      task.updateDetails({ title: 'Updated', description: 'Details' });
+      expect(task.updatedAt).toEqual(new Date('2024-01-02T00:00:00Z'));
+    });
+  });
 });
