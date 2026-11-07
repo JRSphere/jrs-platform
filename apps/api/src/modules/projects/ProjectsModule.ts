@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from '../../infrastructure/prisma/PrismaModule';
+import { ProjectsController } from './infrastructure/http/ProjectsController';
+import { TasksController } from './infrastructure/http/TasksController';
 import { AssignTaskUseCase } from './application/use-cases/AssignTaskUseCase';
 import { CreateProjectUseCase } from './application/use-cases/CreateProjectUseCase';
 import { CreateTaskUseCase } from './application/use-cases/CreateTaskUseCase';
@@ -15,6 +17,7 @@ import { InProcessEventPublisher } from './infrastructure/events/InProcessEventP
 
 @Module({
   imports: [PrismaModule, EventEmitterModule.forRoot()],
+  controllers: [ProjectsController, TasksController],
   providers: [
     { provide: PROJECT_REPOSITORY, useClass: PrismaProjectRepository },
     { provide: TASK_REPOSITORY, useClass: PrismaTaskRepository },
