@@ -47,7 +47,32 @@ describe('PrismaProjectRepository integration', () => {
     });
     await repository.save(later);
     await repository.save(earlier);
-    expect((await repository.findAll()).map((project) => project.id)).toEqual([earlier.id, later.id]);
+    expect((await repository.findAll({ page: 1, limit: 20 })).items.map((project) => project.id))
+      .toEqual([earlier.id, later.id]);
+  });
+
+  it('paginates in creation order and reports the full total', async () => {
+    const projects = await Promise.all(
+      Array.from({ length: 5 }, (_, index) => {
+        const createdAt = new Date(Date.UTC(2025, 0, 1, 0, 0, index));
+        return repository.save(Project.restore({
+          id: randomUUID(),
+          name: `Project ${index + 1}`,
+          description: null,
+          ownerId,
+          createdAt,
+          updatedAt: createdAt,
+        }));
+      }),
+    );
+    const pageOne = await repository.findAll({ page: 1, limit: 2 });
+    const pageThree = await repository.findAll({ page: 3, limit: 2 });
+    const pageFour = await repository.findAll({ page: 4, limit: 2 });
+
+    expect(pageOne.items.map((project) => project.id)).toEqual(projects.slice(0, 2).map((project) => project.id));
+    expect(pageThree.items.map((project) => project.id)).toEqual([projects[4].id]);
+    expect(pageFour.items).toEqual([]);
+    expect([pageOne.total, pageThree.total, pageFour.total]).toEqual([5, 5, 5]);
   });
 
   it('persists a rename', async () => {

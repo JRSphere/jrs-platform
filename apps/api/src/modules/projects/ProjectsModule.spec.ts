@@ -5,6 +5,7 @@ import { AssignTaskUseCase } from './application/use-cases/AssignTaskUseCase';
 import { CreateProjectUseCase } from './application/use-cases/CreateProjectUseCase';
 import { CreateTaskUseCase } from './application/use-cases/CreateTaskUseCase';
 import { GetProjectTasksQuery } from './application/use-cases/GetProjectTasksQuery';
+import { ListProjectsQuery } from './application/use-cases/ListProjectsQuery';
 import { UpdateTaskStatusUseCase } from './application/use-cases/UpdateTaskStatusUseCase';
 import { UpdateTaskDetailsUseCase } from './application/use-cases/UpdateTaskDetailsUseCase';
 import { ProjectsModule } from './ProjectsModule';
@@ -20,6 +21,7 @@ describe('ProjectsModule', () => {
     CreateProjectUseCase,
     CreateTaskUseCase,
     GetProjectTasksQuery,
+    ListProjectsQuery,
     UpdateTaskStatusUseCase,
     AssignTaskUseCase,
     UpdateTaskDetailsUseCase,

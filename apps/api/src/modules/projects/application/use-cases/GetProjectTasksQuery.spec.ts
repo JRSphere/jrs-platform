@@ -13,7 +13,14 @@ class ProjectRepositoryFake implements IProjectRepository {
   async findById(id: string): Promise<Project | null> {
     return this.projects.find((project) => project.id === id) ?? null;
   }
-  async findAll(): Promise<Project[]> { return this.projects; }
+  async findAll(request: PageRequest): Promise<Page<Project>> {
+    return {
+      items: this.projects.slice((request.page - 1) * request.limit, request.page * request.limit),
+      total: this.projects.length,
+      page: request.page,
+      limit: request.limit,
+    };
+  }
   async update(project: Project): Promise<Project> { return project; }
   async delete(): Promise<void> {}
 }

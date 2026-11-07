@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ValidationException } from '../../../../shared-kernel/exceptions/ValidationException';
 import { Project } from '../../domain/entities/Project';
+import { Page, PageRequest } from '../dto/Pagination';
 import { IProjectRepository } from '../ports/IProjectRepository';
 import { CreateProjectUseCase } from './CreateProjectUseCase';
 
@@ -16,8 +17,13 @@ class ProjectRepositoryFake implements IProjectRepository {
     return null;
   }
 
-  async findAll(): Promise<Project[]> {
-    return this.saved;
+  async findAll(request: PageRequest): Promise<Page<Project>> {
+    return {
+      items: this.saved.slice((request.page - 1) * request.limit, request.page * request.limit),
+      total: this.saved.length,
+      page: request.page,
+      limit: request.limit,
+    };
   }
 
   async update(project: Project): Promise<Project> {
