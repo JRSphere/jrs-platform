@@ -144,8 +144,82 @@ describe('Projects HTTP API', () => {
     const response = await request(app.getHttpServer())
       .get(`/api/v1/projects/${project.id}/tasks`)
       .expect(200);
-    expect(response.body).toHaveLength(1);
-    expect(response.body[0].projectId).toBe(project.id);
+    expect(response.body.items).toHaveLength(1);
+    expect(response.body.items[0].projectId).toBe(project.id);
+  });
+
+  it('defaults task pagination to page 1 and limit 20', async () => {
+    const project = await insertProject();
+    await Promise.all(Array.from({ length: 21 }, () => insertTask(project.id)));
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .expect(200);
+    expect(response.body).toMatchObject({ page: 1, limit: 20, total: 21 });
+    expect(response.body.items).toHaveLength(20);
+  });
+
+  it('returns the requested limit and the full task total', async () => {
+    const project = await insertProject();
+    await Promise.all(Array.from({ length: 3 }, () => insertTask(project.id)));
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .query({ limit: 2 })
+      .expect(200);
+    expect(response.body).toMatchObject({ page: 1, limit: 2, total: 3 });
+    expect(response.body.items).toHaveLength(2);
+  });
+
+  it('returns an empty page beyond the end with the actual total', async () => {
+    const project = await insertProject();
+    await Promise.all(Array.from({ length: 3 }, () => insertTask(project.id)));
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .query({ page: 4, limit: 2 })
+      .expect(200);
+    expect(response.body).toMatchObject({ page: 4, limit: 2, total: 3, items: [] });
+  });
+
+  it('rejects a zero task page limit', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .query({ limit: 0 })
+      .expect(400);
+  });
+
+  it('rejects a task page limit above 100', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .query({ limit: 101 })
+      .expect(400);
+  });
+
+  it('rejects a zero task page number', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .query({ page: 0 })
+      .expect(400);
+  });
+
+  it('rejects a non-numeric task page limit', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .query({ limit: 'abc' })
+      .expect(400);
+  });
+
+  it('rejects unknown task list query parameters', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .query({ unknown: 'value' })
+      .expect(400);
   });
 
   it('returns 404 when listing tasks for an unknown project', async () => {

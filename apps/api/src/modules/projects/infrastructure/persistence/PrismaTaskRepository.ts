@@ -4,6 +4,7 @@ import { PrismaService } from '../../../../infrastructure/prisma/PrismaService';
 import { Task } from '../../domain/entities/Task';
 import { TaskStatus } from '../../domain/value-objects/TaskStatus';
 import { ITaskRepository } from '../../application/ports/ITaskRepository';
+import { Page, PageRequest } from '../../application/dto/Pagination';
 
 @Injectable()
 export class PrismaTaskRepository implements ITaskRepository {
@@ -31,12 +32,26 @@ export class PrismaTaskRepository implements ITaskRepository {
     return task ? this.toDomain(task) : null;
   }
 
-  async findByProjectId(projectId: string): Promise<Task[]> {
-    const tasks = await this.prisma.task.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'asc' },
-    });
-    return tasks.map((task) => this.toDomain(task));
+  async findByProjectId(
+    projectId: string,
+    request: PageRequest,
+  ): Promise<Page<Task>> {
+    const where = { projectId };
+    const [tasks, total] = await this.prisma.$transaction([
+      this.prisma.task.findMany({
+        where,
+        skip: (request.page - 1) * request.limit,
+        take: request.limit,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.task.count({ where }),
+    ]);
+    return {
+      items: tasks.map((task) => this.toDomain(task)),
+      total,
+      page: request.page,
+      limit: request.limit,
+    };
   }
 
   async update(task: Task): Promise<Task> {
