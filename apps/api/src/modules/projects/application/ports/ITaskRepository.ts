@@ -7,3 +7,5 @@ export interface ITaskRepository {
   update(task: Task): Promise<Task>;
   delete(id: string): Promise<void>;
 }
+
+export const TASK_REPOSITORY = Symbol('TASK_REPOSITORY');
