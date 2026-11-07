@@ -6,12 +6,14 @@
     "build": "tsc -p tsconfig.build.json",
     "lint": "echo 'lint: not configured yet' && exit 0",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "echo 'test: no tests yet' && exit 0",
+    "test": "pnpm run test:unit && pnpm run test:integration",
+    "test:unit": "vitest run",
     "dev:api": "pnpm --filter api start:dev",
     "dev:web": "pnpm --filter web dev",
     "start:dev": "nest start --watch",
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "test:integration": "vitest run --config vitest.config.integration.ts"
   },
   "devDependencies": {
