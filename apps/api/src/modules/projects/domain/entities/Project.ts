@@ -16,6 +16,11 @@ export interface RestoreProjectProps {
   updatedAt: Date;
 }
 
+export interface ProjectDetailsChanges {
+  name?: string;
+  description?: string | null;
+}
+
 export class Project {
   readonly id: string;
   name: string;
@@ -53,6 +58,25 @@ export class Project {
 
   static restore(props: RestoreProjectProps): Project {
     return new Project(props);
+  }
+
+  updateDetails(changes: ProjectDetailsChanges): void {
+    if (changes.name === undefined && changes.description === undefined) {
+      throw new ValidationException('At least one field must be provided');
+    }
+
+    const name = changes.name?.trim();
+    if (name !== undefined) {
+      Project.validateName(name);
+    }
+
+    if (name !== undefined) {
+      this.name = name;
+    }
+    if (changes.description !== undefined) {
+      this.description = changes.description;
+    }
+    this.updatedAt = new Date();
   }
 
   rename(name: string): void {

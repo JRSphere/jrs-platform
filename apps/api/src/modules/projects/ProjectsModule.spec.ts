@@ -8,6 +8,7 @@ import { GetProjectTasksQuery } from './application/use-cases/GetProjectTasksQue
 import { ListProjectsQuery } from './application/use-cases/ListProjectsQuery';
 import { UpdateTaskStatusUseCase } from './application/use-cases/UpdateTaskStatusUseCase';
 import { UpdateTaskDetailsUseCase } from './application/use-cases/UpdateTaskDetailsUseCase';
+import { UpdateProjectDetailsUseCase } from './application/use-cases/UpdateProjectDetailsUseCase';
 import { ProjectsModule } from './ProjectsModule';
 
 describe('ProjectsModule', () => {
@@ -25,6 +26,7 @@ describe('ProjectsModule', () => {
     UpdateTaskStatusUseCase,
     AssignTaskUseCase,
     UpdateTaskDetailsUseCase,
+    UpdateProjectDetailsUseCase,
   ])('resolves %s', async (useCase) => {
     moduleRef = await Test.createTestingModule({ imports: [ProjectsModule] })
       .overrideProvider(PrismaService)
