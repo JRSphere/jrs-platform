@@ -65,6 +65,8 @@ describe('Projects HTTP API', () => {
       Object.keys(operations as Record<string, unknown>).map((method) => `${method.toUpperCase()} ${path}`),
     );
     expect(pathMethods.sort()).toEqual([
+      'DELETE /api/v1/projects/{projectId}',
+      'DELETE /api/v1/tasks/{taskId}',
       'GET /api/v1/projects',
       'GET /api/v1/projects/{projectId}/tasks',
       'PATCH /api/v1/projects/{projectId}',
@@ -263,6 +265,76 @@ describe('Projects HTTP API', () => {
       .patch('/api/v1/projects/not-a-uuid')
       .send({ name: 'Updated' })
       .expect(400);
+  });
+
+  it('deletes a task and removes it from the project task list', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+
+    await request(app.getHttpServer()).delete(`/api/v1/tasks/${task.id}`).expect(204);
+    const response = await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .expect(200);
+    expect(response.body.items).toEqual([]);
+  });
+
+  it('returns 404 when deleting an unknown task', async () => {
+    await request(app.getHttpServer())
+      .delete(`/api/v1/tasks/${randomUUID()}`)
+      .expect(404);
+  });
+
+  it('returns 404 when deleting the same task twice', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+    await request(app.getHttpServer()).delete(`/api/v1/tasks/${task.id}`).expect(204);
+    await request(app.getHttpServer()).delete(`/api/v1/tasks/${task.id}`).expect(404);
+  });
+
+  it('rejects a non-UUID task delete path parameter', async () => {
+    await request(app.getHttpServer()).delete('/api/v1/tasks/not-a-uuid').expect(400);
+  });
+
+  it('deletes a project and makes its task list unavailable', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer()).delete(`/api/v1/projects/${project.id}`).expect(204);
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .expect(404);
+  });
+
+  it('deletes a project and its tasks through the database cascade', async () => {
+    const project = await insertProject();
+    await insertTask(project.id);
+    await request(app.getHttpServer()).delete(`/api/v1/projects/${project.id}`).expect(204);
+
+    expect(await prisma.task.count({ where: { projectId: project.id } })).toBe(0);
+  });
+
+  it('deletes a project without affecting other projects or their tasks', async () => {
+    const deletedProject = await insertProject('Deleted');
+    const retainedProject = await insertProject('Retained');
+    await insertTask(deletedProject.id);
+    const retainedTask = await insertTask(retainedProject.id);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/projects/${deletedProject.id}`)
+      .expect(204);
+
+    expect(await prisma.project.findUnique({ where: { id: retainedProject.id } }))
+      .not.toBeNull();
+    expect(await prisma.task.findUnique({ where: { id: retainedTask.id } }))
+      .not.toBeNull();
+  });
+
+  it('returns 404 when deleting an unknown project', async () => {
+    await request(app.getHttpServer())
+      .delete(`/api/v1/projects/${randomUUID()}`)
+      .expect(404);
+  });
+
+  it('rejects a non-UUID project delete path parameter', async () => {
+    await request(app.getHttpServer()).delete('/api/v1/projects/not-a-uuid').expect(400);
   });
 
   it('creates a task in a project', async () => {

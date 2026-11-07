@@ -26,6 +26,8 @@ The application ports are `IProjectRepository`, `ITaskRepository`, and `IEventPu
 | `UpdateTaskDetailsUseCase` | Updates task title, description, or due date. |
 | `UpdateTaskStatusUseCase` | Changes task status when the transition is allowed. |
 | `AssignTaskUseCase` | Assigns a task to an assignee ID. |
+| `DeleteProjectUseCase` | Deletes a project. |
+| `DeleteTaskUseCase` | Deletes a task. |
 
 ## Domain rules
 
@@ -56,11 +58,13 @@ Events are emitted only after the relevant repository save or update succeeds.
 | `POST` | `/api/v1/projects` | 201 |
 | `GET` | `/api/v1/projects` | 200 |
 | `PATCH` | `/api/v1/projects/:projectId` | 200 |
+| `DELETE` | `/api/v1/projects/:projectId` | 204 |
 | `POST` | `/api/v1/projects/:projectId/tasks` | 201 |
 | `GET` | `/api/v1/projects/:projectId/tasks` | 200 |
 | `PATCH` | `/api/v1/tasks/:taskId` | 200 |
 | `PATCH` | `/api/v1/tasks/:taskId/status` | 200 |
 | `PATCH` | `/api/v1/tasks/:taskId/assignee` | 200 |
+| `DELETE` | `/api/v1/tasks/:taskId` | 204 |
 
 Both list routes accept `page` (default `1`, minimum `1`) and `limit` (default `20`, range `1`–`100`). Paginated responses have the shape `{ items, total, page, limit }`. Project items contain `id`, `name`, `description`, `ownerId`, `createdAt`, and `updatedAt`; task items contain `id`, `projectId`, `title`, `description`, `assigneeId`, `status`, `dueDate`, `createdAt`, and `updatedAt`.
 
@@ -86,4 +90,4 @@ Integration and E2E test files require `DATABASE_URL` to name a database ending 
 
 - There is no authentication yet. Project creation takes `ownerId` from the request body, and the unfiltered project list returns every project to any caller.
 - Events are synchronous and in-process, with no durable event storage or retry. A publishing failure after a successful save or update does not roll back the database change.
-- There are no HTTP delete endpoints.
+- Deletes are permanent (hard delete) and publish no events. Deleting a project also deletes its tasks.

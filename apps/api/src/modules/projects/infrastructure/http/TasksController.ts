@@ -1,7 +1,8 @@
-import { Body, Controller, Inject, Param, ParseUUIDPipe, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, HttpStatus, Inject, Param, ParseUUIDPipe, Patch } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiNotFoundResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -12,6 +13,7 @@ import { UpdateTaskDetailsDto } from '../../application/dto/UpdateTaskDetailsDto
 import { AssignTaskUseCase } from '../../application/use-cases/AssignTaskUseCase';
 import { UpdateTaskDetailsUseCase } from '../../application/use-cases/UpdateTaskDetailsUseCase';
 import { UpdateTaskStatusUseCase } from '../../application/use-cases/UpdateTaskStatusUseCase';
+import { DeleteTaskUseCase } from '../../application/use-cases/DeleteTaskUseCase';
 import { AssignTaskRequest } from './dto/AssignTaskRequest';
 import { UpdateTaskDetailsRequest } from './dto/UpdateTaskDetailsRequest';
 import { UpdateTaskStatusRequest } from './dto/UpdateTaskStatusRequest';
@@ -28,6 +30,8 @@ export class TasksController {
     private readonly assignTask: AssignTaskUseCase,
     @Inject(UpdateTaskDetailsUseCase)
     private readonly updateTaskDetails: UpdateTaskDetailsUseCase,
+    @Inject(DeleteTaskUseCase)
+    private readonly deleteTask: DeleteTaskUseCase,
   ) {}
 
   @Patch(':taskId/status')
@@ -74,5 +78,17 @@ export class TasksController {
       }),
     };
     return this.updateTaskDetails.execute(input);
+  }
+
+  @Delete(':taskId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a task' })
+  @ApiNoContentResponse()
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  async delete(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+  ): Promise<void> {
+    await this.deleteTask.execute(taskId);
   }
 }

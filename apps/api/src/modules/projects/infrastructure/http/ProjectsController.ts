@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -15,6 +16,7 @@ import { GetProjectTasksQuery } from '../../application/use-cases/GetProjectTask
 import { ListProjectsQuery } from '../../application/use-cases/ListProjectsQuery';
 import { UpdateProjectDetailsUseCase } from '../../application/use-cases/UpdateProjectDetailsUseCase';
 import { UpdateProjectDetailsDto } from '../../application/dto/UpdateProjectDetailsDto';
+import { DeleteProjectUseCase } from '../../application/use-cases/DeleteProjectUseCase';
 import { CreateProjectRequest } from './dto/CreateProjectRequest';
 import { CreateTaskRequest } from './dto/CreateTaskRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
@@ -39,6 +41,8 @@ export class ProjectsController {
     private readonly listProjects: ListProjectsQuery,
     @Inject(UpdateProjectDetailsUseCase)
     private readonly updateProjectDetails: UpdateProjectDetailsUseCase,
+    @Inject(DeleteProjectUseCase)
+    private readonly deleteProject: DeleteProjectUseCase,
   ) {}
 
   @Post()
@@ -102,6 +106,18 @@ export class ProjectsController {
       ...(request.description !== undefined && { description: request.description }),
     };
     return this.updateProjectDetails.execute(input);
+  }
+
+  @Delete(':projectId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a project' })
+  @ApiNoContentResponse()
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  async delete(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ): Promise<void> {
+    await this.deleteProject.execute(projectId);
   }
 
   @Get(':projectId/tasks')
