@@ -1,9 +1,10 @@
 import { Task } from '../../domain/entities/Task';
+import { Page, PageRequest } from '../dto/Pagination';
 
 export interface ITaskRepository {
   save(task: Task): Promise<Task>;
   findById(id: string): Promise<Task | null>;
-  findByProjectId(projectId: string): Promise<Task[]>;
+  findByProjectId(projectId: string, request: PageRequest): Promise<Page<Task>>;
   update(task: Task): Promise<Task>;
   delete(id: string): Promise<void>;
 }

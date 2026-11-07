@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -17,6 +17,8 @@ import { CreateTaskRequest } from './dto/CreateTaskRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
 import { ProjectResponse } from './dto/ProjectResponse';
 import { TaskResponse } from './dto/TaskResponse';
+import { PageQuery } from './dto/PageQuery';
+import { TaskPageResponse } from './dto/TaskPageResponse';
 
 @Controller('api/v1/projects')
 @ApiTags('projects')
@@ -65,10 +67,16 @@ export class ProjectsController {
 
   @Get(':projectId/tasks')
   @ApiOperation({ summary: 'List tasks in a project' })
-  @ApiOkResponse({ type: TaskResponse, isArray: true })
+  @ApiOkResponse({ type: TaskPageResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  getTasks(@Param('projectId', ParseUUIDPipe) projectId: string) {
-    return this.getProjectTasks.execute(projectId);
+  getTasks(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query() query: PageQuery,
+  ) {
+    return this.getProjectTasks.execute(projectId, {
+      page: query.page,
+      limit: query.limit,
+    });
   }
 }

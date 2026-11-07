@@ -56,7 +56,45 @@ describe('PrismaTaskRepository integration', () => {
     const anotherProject = await projects.save(Project.create({ name: 'Other', ownerId }));
     await repository.save(Task.create({ projectId: project.id, title: 'Included' }));
     await repository.save(Task.create({ projectId: anotherProject.id, title: 'Excluded' }));
-    expect((await repository.findByProjectId(project.id)).map((task) => task.title)).toEqual(['Included']);
+    expect((await repository.findByProjectId(project.id, { page: 1, limit: 20 })).items
+      .map((task) => task.title)).toEqual(['Included']);
+  });
+
+  it('paginates in creation order and reports the full total', async () => {
+    const tasks = await Promise.all(
+      Array.from({ length: 5 }, (_, index) => {
+        const createdAt = new Date(Date.UTC(2025, 0, 1, 0, 0, index));
+        return repository.save(Task.restore({
+          id: randomUUID(),
+          projectId: project.id,
+          title: `Task ${index + 1}`,
+          description: null,
+          assigneeId: null,
+          status: TaskStatus.TODO,
+          dueDate: null,
+          createdAt,
+          updatedAt: createdAt,
+        }));
+      }),
+    );
+    const pageOne = await repository.findByProjectId(project.id, { page: 1, limit: 2 });
+    const pageThree = await repository.findByProjectId(project.id, { page: 3, limit: 2 });
+    const pageFour = await repository.findByProjectId(project.id, { page: 4, limit: 2 });
+
+    expect(pageOne.items.map((task) => task.id)).toEqual(tasks.slice(0, 2).map((task) => task.id));
+    expect(pageThree.items.map((task) => task.id)).toEqual([tasks[4].id]);
+    expect(pageFour.items).toEqual([]);
+    expect([pageOne.total, pageThree.total, pageFour.total]).toEqual([5, 5, 5]);
+  });
+
+  it('does not count tasks belonging to another project', async () => {
+    const otherProject = await projects.save(Project.create({ name: 'Other', ownerId }));
+    await repository.save(Task.create({ projectId: project.id, title: 'Included' }));
+    await repository.save(Task.create({ projectId: otherProject.id, title: 'Excluded' }));
+
+    const page = await repository.findByProjectId(project.id, { page: 1, limit: 20 });
+    expect(page.total).toBe(1);
+    expect(page.items.map((task) => task.title)).toEqual(['Included']);
   });
 
   it('persists status and assignee changes', async () => {
@@ -87,6 +125,6 @@ describe('PrismaTaskRepository integration', () => {
   it('cascades project deletion to its tasks', async () => {
     await repository.save(Task.create({ projectId: project.id, title: 'Cascade me' }));
     await prisma.project.delete({ where: { id: project.id } });
-    expect(await repository.findByProjectId(project.id)).toEqual([]);
+    expect((await repository.findByProjectId(project.id, { page: 1, limit: 20 })).items).toEqual([]);
   });
 });

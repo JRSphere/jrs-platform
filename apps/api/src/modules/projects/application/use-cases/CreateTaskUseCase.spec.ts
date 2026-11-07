@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { NotFoundException } from '../../../../shared-kernel/exceptions/NotFoundException';
 import { Project } from '../../domain/entities/Project';
 import { Task } from '../../domain/entities/Task';
+import { Page, PageRequest } from '../dto/Pagination';
 import { TaskAssignedEvent } from '../../domain/events/TaskAssignedEvent';
 import { TaskCreatedEvent } from '../../domain/events/TaskCreatedEvent';
 import { IEventPublisher } from '../ports/IEventPublisher';
@@ -24,8 +25,14 @@ class TaskRepositoryFake implements ITaskRepository {
   readonly saved: Task[] = [];
   async save(task: Task): Promise<Task> { this.saved.push(task); return task; }
   async findById(): Promise<Task | null> { return null; }
-  async findByProjectId(projectId: string): Promise<Task[]> {
-    return this.saved.filter((task) => task.projectId === projectId);
+  async findByProjectId(projectId: string, request: PageRequest): Promise<Page<Task>> {
+    const items = this.saved.filter((task) => task.projectId === projectId);
+    return {
+      items: items.slice((request.page - 1) * request.limit, request.page * request.limit),
+      total: items.length,
+      page: request.page,
+      limit: request.limit,
+    };
   }
   async update(task: Task): Promise<Task> { return task; }
   async delete(): Promise<void> {}
