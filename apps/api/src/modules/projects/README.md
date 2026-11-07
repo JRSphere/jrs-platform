@@ -20,6 +20,7 @@ The application ports are `IProjectRepository`, `ITaskRepository`, and `IEventPu
 |---|---|
 | `CreateProjectUseCase` | Creates and persists a project. |
 | `ListProjectsQuery` | Returns a paginated project list. |
+| `UpdateProjectDetailsUseCase` | Updates a project's name or description. |
 | `CreateTaskUseCase` | Creates a task for an existing project. |
 | `GetProjectTasksQuery` | Returns a paginated task list for an existing project. |
 | `UpdateTaskDetailsUseCase` | Updates task title, description, or due date. |
@@ -54,6 +55,7 @@ Events are emitted only after the relevant repository save or update succeeds.
 |---|---|---:|
 | `POST` | `/api/v1/projects` | 201 |
 | `GET` | `/api/v1/projects` | 200 |
+| `PATCH` | `/api/v1/projects/:projectId` | 200 |
 | `POST` | `/api/v1/projects/:projectId/tasks` | 201 |
 | `GET` | `/api/v1/projects/:projectId/tasks` | 200 |
 | `PATCH` | `/api/v1/tasks/:taskId` | 200 |
@@ -84,4 +86,4 @@ Integration and E2E test files require `DATABASE_URL` to name a database ending 
 
 - There is no authentication yet. Project creation takes `ownerId` from the request body, and the unfiltered project list returns every project to any caller.
 - Events are synchronous and in-process, with no durable event storage or retry. A publishing failure after a successful save or update does not roll back the database change.
-- There are no HTTP delete endpoints or project editing endpoint.
+- There are no HTTP delete endpoints.

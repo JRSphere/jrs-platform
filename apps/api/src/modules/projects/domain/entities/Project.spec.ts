@@ -86,4 +86,66 @@ describe('Project', () => {
     expect(project.description).toBeNull();
     expect(project.updatedAt).toEqual(new Date('2024-01-03T00:00:00Z'));
   });
+
+  it('updates only the name', () => {
+    const project = createProject({ description: 'Existing details' });
+    project.updateDetails({ name: 'Updated' });
+    expect(project.name).toBe('Updated');
+    expect(project.description).toBe('Existing details');
+  });
+
+  it('updates only the description', () => {
+    const project = createProject();
+    project.updateDetails({ description: 'Details' });
+    expect(project.description).toBe('Details');
+    expect(project.name).toBe('Platform');
+  });
+
+  it('clears the description with null', () => {
+    const project = createProject({ description: 'Details' });
+    project.updateDetails({ description: null });
+    expect(project.description).toBeNull();
+  });
+
+  it('trims an updated name', () => {
+    const project = createProject();
+    project.updateDetails({ name: '  Updated  ' });
+    expect(project.name).toBe('Updated');
+  });
+
+  it.each(['', '   ', 'p'.repeat(256)])('rejects invalid updated name %j', (name) => {
+    const project = createProject();
+    expect(() => project.updateDetails({ name })).toThrowError(ValidationException);
+  });
+
+  it('rejects empty changes', () => {
+    const project = createProject();
+    expect(() => project.updateDetails({})).toThrowError(ValidationException);
+  });
+
+  it('leaves every field and updatedAt unchanged when name validation fails', () => {
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    const project = createProject({ description: 'Existing details' });
+    const original = {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      ownerId: project.ownerId,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    };
+    vi.setSystemTime(new Date('2024-01-02T00:00:00Z'));
+
+    expect(() => project.updateDetails({ name: ' ', description: null }))
+      .toThrowError(ValidationException);
+    expect(project).toEqual(original);
+  });
+
+  it('touches updatedAt once after a successful update', () => {
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    const project = createProject();
+    vi.setSystemTime(new Date('2024-01-02T00:00:00Z'));
+    project.updateDetails({ name: 'Updated', description: 'Details' });
+    expect(project.updatedAt).toEqual(new Date('2024-01-02T00:00:00Z'));
+  });
 });

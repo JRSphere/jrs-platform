@@ -67,6 +67,7 @@ describe('Projects HTTP API', () => {
     expect(pathMethods.sort()).toEqual([
       'GET /api/v1/projects',
       'GET /api/v1/projects/{projectId}/tasks',
+      'PATCH /api/v1/projects/{projectId}',
       'PATCH /api/v1/tasks/{taskId}',
       'PATCH /api/v1/tasks/{taskId}/assignee',
       'PATCH /api/v1/tasks/{taskId}/status',
@@ -169,6 +170,98 @@ describe('Projects HTTP API', () => {
     await request(app.getHttpServer())
       .post('/api/v1/projects')
       .send({ name: 'Platform', ownerId: 'not-a-uuid' })
+      .expect(400);
+  });
+
+  it('updates only the project name and leaves its description unchanged', async () => {
+    const project = await insertProject();
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { description: 'Existing details' },
+    });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({ name: 'Updated' })
+      .expect(200);
+    expect(response.body.name).toBe('Updated');
+    expect(response.body.description).toBe('Existing details');
+  });
+
+  it('clears the project description with null', async () => {
+    const project = await insertProject();
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { description: 'Existing details' },
+    });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({ description: null })
+      .expect(200);
+    expect(response.body.description).toBeNull();
+  });
+
+  it('sets the project description', async () => {
+    const project = await insertProject();
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({ description: 'New details' })
+      .expect(200);
+    expect(response.body.description).toBe('New details');
+  });
+
+  it('rejects an empty project details update', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({})
+      .expect(400);
+  });
+
+  it('rejects an empty project name update', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({ name: '' })
+      .expect(400);
+  });
+
+  it('rejects a null project name update', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({ name: null })
+      .expect(400);
+  });
+
+  it('rejects project name updates longer than 255 characters', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({ name: 'p'.repeat(256) })
+      .expect(400);
+  });
+
+  it('rejects unknown project details fields', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({ name: 'Updated', ownerId })
+      .expect(400);
+  });
+
+  it('returns 404 when updating an unknown project', async () => {
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${randomUUID()}`)
+      .send({ name: 'Updated' })
+      .expect(404);
+  });
+
+  it('rejects a non-UUID project details path parameter', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/projects/not-a-uuid')
+      .send({ name: 'Updated' })
       .expect(400);
   });
 

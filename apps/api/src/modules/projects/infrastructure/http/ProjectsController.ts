@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -13,6 +13,8 @@ import { CreateProjectUseCase } from '../../application/use-cases/CreateProjectU
 import { CreateTaskUseCase } from '../../application/use-cases/CreateTaskUseCase';
 import { GetProjectTasksQuery } from '../../application/use-cases/GetProjectTasksQuery';
 import { ListProjectsQuery } from '../../application/use-cases/ListProjectsQuery';
+import { UpdateProjectDetailsUseCase } from '../../application/use-cases/UpdateProjectDetailsUseCase';
+import { UpdateProjectDetailsDto } from '../../application/dto/UpdateProjectDetailsDto';
 import { CreateProjectRequest } from './dto/CreateProjectRequest';
 import { CreateTaskRequest } from './dto/CreateTaskRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
@@ -21,6 +23,7 @@ import { TaskResponse } from './dto/TaskResponse';
 import { PageQuery } from './dto/PageQuery';
 import { TaskPageResponse } from './dto/TaskPageResponse';
 import { ProjectPageResponse } from './dto/ProjectPageResponse';
+import { UpdateProjectDetailsRequest } from './dto/UpdateProjectDetailsRequest';
 
 @Controller('api/v1/projects')
 @ApiTags('projects')
@@ -34,6 +37,8 @@ export class ProjectsController {
     private readonly getProjectTasks: GetProjectTasksQuery,
     @Inject(ListProjectsQuery)
     private readonly listProjects: ListProjectsQuery,
+    @Inject(UpdateProjectDetailsUseCase)
+    private readonly updateProjectDetails: UpdateProjectDetailsUseCase,
   ) {}
 
   @Post()
@@ -80,6 +85,23 @@ export class ProjectsController {
       page: query.page,
       limit: query.limit,
     });
+  }
+
+  @Patch(':projectId')
+  @ApiOperation({ summary: 'Update project details' })
+  @ApiOkResponse({ type: ProjectResponse })
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  updateDetails(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Body() request: UpdateProjectDetailsRequest,
+  ) {
+    const input: UpdateProjectDetailsDto = {
+      projectId,
+      ...(request.name !== undefined && { name: request.name }),
+      ...(request.description !== undefined && { description: request.description }),
+    };
+    return this.updateProjectDetails.execute(input);
   }
 
   @Get(':projectId/tasks')
