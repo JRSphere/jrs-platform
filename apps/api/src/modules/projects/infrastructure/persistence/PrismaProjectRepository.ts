@@ -3,6 +3,7 @@ import { NotFoundException } from '../../../../shared-kernel/exceptions/NotFound
 import { PrismaService } from '../../../../infrastructure/prisma/PrismaService';
 import { Project } from '../../domain/entities/Project';
 import { IProjectRepository } from '../../application/ports/IProjectRepository';
+import { Page, PageRequest } from '../../application/dto/Pagination';
 
 @Injectable()
 export class PrismaProjectRepository implements IProjectRepository {
@@ -27,9 +28,21 @@ export class PrismaProjectRepository implements IProjectRepository {
     return project ? this.toDomain(project) : null;
   }
 
-  async findAll(): Promise<Project[]> {
-    const projects = await this.prisma.project.findMany({ orderBy: { createdAt: 'asc' } });
-    return projects.map((project) => this.toDomain(project));
+  async findAll(request: PageRequest): Promise<Page<Project>> {
+    const [projects, total] = await this.prisma.$transaction([
+      this.prisma.project.findMany({
+        skip: (request.page - 1) * request.limit,
+        take: request.limit,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.project.count(),
+    ]);
+    return {
+      items: projects.map((project) => this.toDomain(project)),
+      total,
+      page: request.page,
+      limit: request.limit,
+    };
   }
 
   async update(project: Project): Promise<Project> {

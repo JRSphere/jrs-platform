@@ -12,6 +12,7 @@ import { CreateTaskDto } from '../../application/dto/CreateTaskDto';
 import { CreateProjectUseCase } from '../../application/use-cases/CreateProjectUseCase';
 import { CreateTaskUseCase } from '../../application/use-cases/CreateTaskUseCase';
 import { GetProjectTasksQuery } from '../../application/use-cases/GetProjectTasksQuery';
+import { ListProjectsQuery } from '../../application/use-cases/ListProjectsQuery';
 import { CreateProjectRequest } from './dto/CreateProjectRequest';
 import { CreateTaskRequest } from './dto/CreateTaskRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
@@ -19,6 +20,7 @@ import { ProjectResponse } from './dto/ProjectResponse';
 import { TaskResponse } from './dto/TaskResponse';
 import { PageQuery } from './dto/PageQuery';
 import { TaskPageResponse } from './dto/TaskPageResponse';
+import { ProjectPageResponse } from './dto/ProjectPageResponse';
 
 @Controller('api/v1/projects')
 @ApiTags('projects')
@@ -30,6 +32,8 @@ export class ProjectsController {
     private readonly createTask: CreateTaskUseCase,
     @Inject(GetProjectTasksQuery)
     private readonly getProjectTasks: GetProjectTasksQuery,
+    @Inject(ListProjectsQuery)
+    private readonly listProjects: ListProjectsQuery,
   ) {}
 
   @Post()
@@ -63,6 +67,19 @@ export class ProjectsController {
       dueDate: request.dueDate == null ? request.dueDate : new Date(request.dueDate),
     };
     return this.createTask.execute(input);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List projects' })
+  @ApiOkResponse({ type: ProjectPageResponse })
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  list(
+    @Query() query: PageQuery,
+  ) {
+    return this.listProjects.execute({
+      page: query.page,
+      limit: query.limit,
+    });
   }
 
   @Get(':projectId/tasks')

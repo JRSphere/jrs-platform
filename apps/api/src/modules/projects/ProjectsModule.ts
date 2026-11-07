@@ -7,6 +7,7 @@ import { AssignTaskUseCase } from './application/use-cases/AssignTaskUseCase';
 import { CreateProjectUseCase } from './application/use-cases/CreateProjectUseCase';
 import { CreateTaskUseCase } from './application/use-cases/CreateTaskUseCase';
 import { GetProjectTasksQuery } from './application/use-cases/GetProjectTasksQuery';
+import { ListProjectsQuery } from './application/use-cases/ListProjectsQuery';
 import { UpdateTaskStatusUseCase } from './application/use-cases/UpdateTaskStatusUseCase';
 import { UpdateTaskDetailsUseCase } from './application/use-cases/UpdateTaskDetailsUseCase';
 import { IEventPublisher, EVENT_PUBLISHER } from './application/ports/IEventPublisher';
@@ -44,6 +45,11 @@ import { InProcessEventPublisher } from './infrastructure/events/InProcessEventP
       inject: [PROJECT_REPOSITORY, TASK_REPOSITORY],
     },
     {
+      provide: ListProjectsQuery,
+      useFactory: (projects: IProjectRepository) => new ListProjectsQuery(projects),
+      inject: [PROJECT_REPOSITORY],
+    },
+    {
       provide: UpdateTaskStatusUseCase,
       useFactory: (tasks: ITaskRepository, events: IEventPublisher) =>
         new UpdateTaskStatusUseCase(tasks, events),
@@ -65,6 +71,7 @@ import { InProcessEventPublisher } from './infrastructure/events/InProcessEventP
     CreateProjectUseCase,
     CreateTaskUseCase,
     GetProjectTasksQuery,
+    ListProjectsQuery,
     UpdateTaskStatusUseCase,
     AssignTaskUseCase,
     UpdateTaskDetailsUseCase,

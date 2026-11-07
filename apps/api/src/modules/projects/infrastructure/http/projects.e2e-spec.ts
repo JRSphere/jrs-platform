@@ -21,10 +21,9 @@ const assigneeId = '00000000-0000-4000-8000-000000000002';
 let app: INestApplication;
 let prisma: PrismaService;
 
-async function insertProject(name = 'Platform') {
-  const now = new Date();
+async function insertProject(name = 'Platform', createdAt = new Date()) {
   return prisma.project.create({
-    data: { id: randomUUID(), name, ownerId, createdAt: now, updatedAt: now },
+    data: { id: randomUUID(), name, ownerId, createdAt, updatedAt: createdAt },
   });
 }
 
@@ -66,6 +65,7 @@ describe('Projects HTTP API', () => {
       Object.keys(operations as Record<string, unknown>).map((method) => `${method.toUpperCase()} ${path}`),
     );
     expect(pathMethods.sort()).toEqual([
+      'GET /api/v1/projects',
       'GET /api/v1/projects/{projectId}/tasks',
       'PATCH /api/v1/tasks/{taskId}',
       'PATCH /api/v1/tasks/{taskId}/assignee',
@@ -73,6 +73,74 @@ describe('Projects HTTP API', () => {
       'POST /api/v1/projects',
       'POST /api/v1/projects/{projectId}/tasks',
     ]);
+  });
+
+  it('returns an empty project page for an empty database', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .expect(200);
+    expect(response.body).toEqual({ items: [], total: 0, page: 1, limit: 20 });
+  });
+
+  it('paginates projects and reports the full total', async () => {
+    await insertProject('First', new Date('2025-01-01T00:00:00Z'));
+    await insertProject('Second', new Date('2025-01-02T00:00:00Z'));
+    await insertProject('Third', new Date('2025-01-03T00:00:00Z'));
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .query({ limit: 2 })
+      .expect(200);
+    expect(firstPage.body).toMatchObject({ page: 1, limit: 2, total: 3 });
+    expect(firstPage.body.items).toHaveLength(2);
+
+    const secondPage = await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .query({ page: 2, limit: 2 })
+      .expect(200);
+    expect(secondPage.body).toMatchObject({
+      page: 2,
+      limit: 2,
+      total: 3,
+      items: [{ name: 'Third' }],
+    });
+  });
+
+  it('returns an empty project page beyond the end with the actual total', async () => {
+    await insertProject('First');
+    await insertProject('Second');
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .query({ page: 3, limit: 1 })
+      .expect(200);
+    expect(response.body).toMatchObject({ items: [], total: 2, page: 3, limit: 1 });
+  });
+
+  it('rejects a zero project page limit', async () => {
+    await request(app.getHttpServer()).get('/api/v1/projects').query({ limit: 0 }).expect(400);
+  });
+
+  it('rejects a project page limit above 100', async () => {
+    await request(app.getHttpServer()).get('/api/v1/projects').query({ limit: 101 }).expect(400);
+  });
+
+  it('rejects a zero project page number', async () => {
+    await request(app.getHttpServer()).get('/api/v1/projects').query({ page: 0 }).expect(400);
+  });
+
+  it('rejects a non-numeric project page limit', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .query({ limit: 'abc' })
+      .expect(400);
+  });
+
+  it('rejects unknown project list query parameters', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .query({ unknown: 'value' })
+      .expect(400);
   });
 
   it('creates a project', async () => {
