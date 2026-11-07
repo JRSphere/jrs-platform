@@ -9,14 +9,20 @@
     "test": "echo 'test: no tests yet' && exit 0",
     "dev:api": "pnpm --filter api start:dev",
     "dev:web": "pnpm --filter web dev",
-    "start:dev": "nest start --watch"
+    "start:dev": "nest start --watch",
+    "prisma:validate": "prisma validate",
+    "prisma:generate": "prisma generate"
   },
   "devDependencies": {
     "@nestjs/testing": "^12.2.0",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^26.6.5",
+    "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
+    "dotenv": "^18.0.9",
+    "prisma": "^7.10.1",
     "supertest": "^7.3.1",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^5.0.5"
@@ -25,6 +31,9 @@
     "@nestjs/common": "^12.2.0",
     "@nestjs/core": "^12.2.0",
     "@nestjs/platform-express": "^12.2.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   }
