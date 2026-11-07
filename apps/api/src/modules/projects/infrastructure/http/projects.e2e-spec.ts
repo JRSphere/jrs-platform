@@ -1,0 +1,189 @@
+import { randomUUID } from 'crypto';
+import { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import request from 'supertest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { PrismaService } from '../../../../infrastructure/prisma/PrismaService';
+import { AppModule } from '../../../../app.module';
+import { configureApp } from '../../../../infrastructure/http/configureApp';
+
+const databaseUrl = process.env.DATABASE_URL;
+const databaseName = databaseUrl
+  ? new URL(databaseUrl).pathname.split('/').filter(Boolean).pop()
+  : undefined;
+if (!databaseName?.endsWith('_test')) {
+  throw new Error('E2E tests require a DATABASE_URL with a database name ending in _test');
+}
+
+const ownerId = '00000000-0000-4000-8000-000000000001';
+const assigneeId = '00000000-0000-4000-8000-000000000002';
+let app: INestApplication;
+let prisma: PrismaService;
+
+async function insertProject(name = 'Platform') {
+  const now = new Date();
+  return prisma.project.create({
+    data: { id: randomUUID(), name, ownerId, createdAt: now, updatedAt: now },
+  });
+}
+
+async function insertTask(projectId: string) {
+  const now = new Date();
+  return prisma.task.create({
+    data: {
+      id: randomUUID(),
+      projectId,
+      title: 'Review',
+      createdAt: now,
+      updatedAt: now,
+    },
+  });
+}
+
+beforeAll(async () => {
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  app = moduleRef.createNestApplication();
+  configureApp(app);
+  await app.init();
+  prisma = app.get(PrismaService);
+});
+
+afterAll(async () => {
+  await app.close();
+});
+
+beforeEach(async () => {
+  await prisma.task.deleteMany();
+  await prisma.project.deleteMany();
+});
+
+describe('Projects HTTP API', () => {
+  it('creates a project', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .send({ name: 'Platform', ownerId })
+      .expect(201);
+    expect(response.body).toMatchObject({ id: expect.any(String), name: 'Platform' });
+  });
+
+  it('rejects an empty project name', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .send({ name: '', ownerId })
+      .expect(400);
+  });
+
+  it('rejects unknown project fields', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .send({ name: 'Platform', ownerId, unexpected: true })
+      .expect(400);
+  });
+
+  it('rejects a non-UUID project owner', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .send({ name: 'Platform', ownerId: 'not-a-uuid' })
+      .expect(400);
+  });
+
+  it('creates a task in a project', async () => {
+    const project = await insertProject();
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/projects/${project.id}/tasks`)
+      .send({ title: 'Review' })
+      .expect(201);
+    expect(response.body.status).toBe('TODO');
+  });
+
+  it('rejects task titles longer than 255 characters', async () => {
+    const project = await insertProject();
+    await request(app.getHttpServer())
+      .post(`/api/v1/projects/${project.id}/tasks`)
+      .send({ title: 't'.repeat(256) })
+      .expect(400);
+  });
+
+  it('returns 404 when creating a task for an unknown project', async () => {
+    await request(app.getHttpServer())
+      .post(`/api/v1/projects/${randomUUID()}/tasks`)
+      .send({ title: 'Review' })
+      .expect(404);
+  });
+
+  it('rejects a non-UUID project path parameter', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/projects/not-a-uuid/tasks')
+      .send({ title: 'Review' })
+      .expect(400);
+  });
+
+  it('returns only tasks belonging to the requested project', async () => {
+    const project = await insertProject();
+    const otherProject = await insertProject('Other');
+    await insertTask(project.id);
+    await insertTask(otherProject.id);
+
+    const response = await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .expect(200);
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].projectId).toBe(project.id);
+  });
+
+  it('returns 404 when listing tasks for an unknown project', async () => {
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${randomUUID()}/tasks`)
+      .expect(404);
+  });
+
+  it('updates task status from TODO through IN_PROGRESS to DONE', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/status`)
+      .send({ status: 'IN_PROGRESS' })
+      .expect(200)
+      .expect(({ body }) => expect(body.status).toBe('IN_PROGRESS'));
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/status`)
+      .send({ status: 'DONE' })
+      .expect(200)
+      .expect(({ body }) => expect(body.status).toBe('DONE'));
+  });
+
+  it('rejects a direct TODO to DONE transition', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/status`)
+      .send({ status: 'DONE' })
+      .expect(400);
+  });
+
+  it('returns 404 when updating an unknown task status', async () => {
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${randomUUID()}/status`)
+      .send({ status: 'IN_PROGRESS' })
+      .expect(404);
+  });
+
+  it('assigns a task', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/assignee`)
+      .send({ assigneeId })
+      .expect(200);
+    expect(response.body.assigneeId).toBe(assigneeId);
+  });
+
+  it('rejects a non-UUID task assignee', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/assignee`)
+      .send({ assigneeId: 'not-a-uuid' })
+      .expect(400);
+  });
+});
