@@ -7,3 +7,5 @@ export interface IProjectRepository {
   update(project: Project): Promise<Project>;
   delete(id: string): Promise<void>;
 }
+
+export const PROJECT_REPOSITORY = Symbol('PROJECT_REPOSITORY');
