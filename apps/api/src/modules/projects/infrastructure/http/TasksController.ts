@@ -8,9 +8,12 @@ import {
 } from '@nestjs/swagger';
 import { AssignTaskDto } from '../../application/dto/AssignTaskDto';
 import { UpdateTaskStatusDto } from '../../application/dto/UpdateTaskStatusDto';
+import { UpdateTaskDetailsDto } from '../../application/dto/UpdateTaskDetailsDto';
 import { AssignTaskUseCase } from '../../application/use-cases/AssignTaskUseCase';
+import { UpdateTaskDetailsUseCase } from '../../application/use-cases/UpdateTaskDetailsUseCase';
 import { UpdateTaskStatusUseCase } from '../../application/use-cases/UpdateTaskStatusUseCase';
 import { AssignTaskRequest } from './dto/AssignTaskRequest';
+import { UpdateTaskDetailsRequest } from './dto/UpdateTaskDetailsRequest';
 import { UpdateTaskStatusRequest } from './dto/UpdateTaskStatusRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
 import { TaskResponse } from './dto/TaskResponse';
@@ -23,6 +26,8 @@ export class TasksController {
     private readonly updateTaskStatus: UpdateTaskStatusUseCase,
     @Inject(AssignTaskUseCase)
     private readonly assignTask: AssignTaskUseCase,
+    @Inject(UpdateTaskDetailsUseCase)
+    private readonly updateTaskDetails: UpdateTaskDetailsUseCase,
   ) {}
 
   @Patch(':taskId/status')
@@ -49,5 +54,25 @@ export class TasksController {
   ) {
     const input: AssignTaskDto = { taskId, assigneeId: request.assigneeId };
     return this.assignTask.execute(input);
+  }
+
+  @Patch(':taskId')
+  @ApiOperation({ summary: 'Update task details' })
+  @ApiOkResponse({ type: TaskResponse })
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  updateDetails(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Body() request: UpdateTaskDetailsRequest,
+  ) {
+    const input: UpdateTaskDetailsDto = {
+      taskId,
+      ...(request.title !== undefined && { title: request.title }),
+      ...(request.description !== undefined && { description: request.description }),
+      ...(request.dueDate !== undefined && {
+        dueDate: request.dueDate === null ? null : new Date(request.dueDate),
+      }),
+    };
+    return this.updateTaskDetails.execute(input);
   }
 }
