@@ -11,6 +11,8 @@ import { ListProjectsQuery } from './application/use-cases/ListProjectsQuery';
 import { UpdateTaskStatusUseCase } from './application/use-cases/UpdateTaskStatusUseCase';
 import { UpdateTaskDetailsUseCase } from './application/use-cases/UpdateTaskDetailsUseCase';
 import { UpdateProjectDetailsUseCase } from './application/use-cases/UpdateProjectDetailsUseCase';
+import { DeleteTaskUseCase } from './application/use-cases/DeleteTaskUseCase';
+import { DeleteProjectUseCase } from './application/use-cases/DeleteProjectUseCase';
 import { IEventPublisher, EVENT_PUBLISHER } from './application/ports/IEventPublisher';
 import { IProjectRepository, PROJECT_REPOSITORY } from './application/ports/IProjectRepository';
 import { ITaskRepository, TASK_REPOSITORY } from './application/ports/ITaskRepository';
@@ -72,6 +74,16 @@ import { InProcessEventPublisher } from './infrastructure/events/InProcessEventP
       useFactory: (projects: IProjectRepository) => new UpdateProjectDetailsUseCase(projects),
       inject: [PROJECT_REPOSITORY],
     },
+    {
+      provide: DeleteTaskUseCase,
+      useFactory: (tasks: ITaskRepository) => new DeleteTaskUseCase(tasks),
+      inject: [TASK_REPOSITORY],
+    },
+    {
+      provide: DeleteProjectUseCase,
+      useFactory: (projects: IProjectRepository) => new DeleteProjectUseCase(projects),
+      inject: [PROJECT_REPOSITORY],
+    },
   ],
   exports: [
     CreateProjectUseCase,
@@ -82,6 +94,8 @@ import { InProcessEventPublisher } from './infrastructure/events/InProcessEventP
     AssignTaskUseCase,
     UpdateTaskDetailsUseCase,
     UpdateProjectDetailsUseCase,
+    DeleteTaskUseCase,
+    DeleteProjectUseCase,
   ],
 })
 export class ProjectsModule {}
