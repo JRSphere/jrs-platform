@@ -11,7 +11,8 @@
     "dev:web": "pnpm --filter web dev",
     "start:dev": "nest start --watch",
     "prisma:validate": "prisma validate",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "test:integration": "vitest run --config vitest.config.integration.ts"
   },
   "devDependencies": {
     "@nestjs/testing": "^12.2.0",
