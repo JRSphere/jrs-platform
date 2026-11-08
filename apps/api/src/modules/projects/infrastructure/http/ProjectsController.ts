@@ -33,8 +33,8 @@ import { ListProjectsQuery } from '../../application/use-cases/ListProjectsQuery
 import { UpdateProjectDetailsUseCase } from '../../application/use-cases/UpdateProjectDetailsUseCase';
 import { UpdateProjectDetailsDto } from '../../application/dto/UpdateProjectDetailsDto';
 import { DeleteProjectUseCase } from '../../application/use-cases/DeleteProjectUseCase';
-import { AuthenticatedGuard } from './auth/AuthenticatedGuard';
-import { CurrentUserId } from './auth/CurrentUserId';
+import { AuthenticatedGuard } from '../../../../infrastructure/http/auth/AuthenticatedGuard';
+import { CurrentUserId } from '../../../../infrastructure/http/auth/CurrentUserId';
 import { CreateProjectRequest } from './dto/CreateProjectRequest';
 import { CreateTaskRequest } from './dto/CreateTaskRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
