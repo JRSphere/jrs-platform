@@ -3,6 +3,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ProjectsModule } from '../../modules/projects/ProjectsModule';
 
 export function setupOpenApi(app: INestApplication): void {
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+
   const config = new DocumentBuilder()
     .setTitle('JRSphere API')
     .setVersion('1.0')
