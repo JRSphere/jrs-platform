@@ -18,7 +18,7 @@
     "test:e2e": "vitest run --config vitest.config.e2e.ts"
   },
   "devDependencies": {
-    "@nestjs/testing": "^12.2.0",
+    "@nestjs/testing": "^12.3.3",
     "@swc/core": "^1.16.22",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
