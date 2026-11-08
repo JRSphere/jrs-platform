@@ -47,7 +47,7 @@ describe('PrismaProjectRepository integration', () => {
     });
     await repository.save(later);
     await repository.save(earlier);
-    expect((await repository.findAll({ page: 1, limit: 20 })).items.map((project) => project.id))
+    expect((await repository.findAll({ page: 1, limit: 20 }, ownerId)).items.map((project) => project.id))
       .toEqual([earlier.id, later.id]);
   });
 
@@ -65,14 +65,24 @@ describe('PrismaProjectRepository integration', () => {
         }));
       }),
     );
-    const pageOne = await repository.findAll({ page: 1, limit: 2 });
-    const pageThree = await repository.findAll({ page: 3, limit: 2 });
-    const pageFour = await repository.findAll({ page: 4, limit: 2 });
+    const pageOne = await repository.findAll({ page: 1, limit: 2 }, ownerId);
+    const pageThree = await repository.findAll({ page: 3, limit: 2 }, ownerId);
+    const pageFour = await repository.findAll({ page: 4, limit: 2 }, ownerId);
 
     expect(pageOne.items.map((project) => project.id)).toEqual(projects.slice(0, 2).map((project) => project.id));
     expect(pageThree.items.map((project) => project.id)).toEqual([projects[4].id]);
     expect(pageFour.items).toEqual([]);
     expect([pageOne.total, pageThree.total, pageFour.total]).toEqual([5, 5, 5]);
+  });
+
+  it('filters project items and total by owner', async () => {
+    const otherOwner = '00000000-0000-4000-8000-000000000002';
+    await repository.save(Project.create({ name: 'Owned', ownerId }));
+    await repository.save(Project.create({ name: 'Other', ownerId: otherOwner }));
+
+    const page = await repository.findAll({ page: 1, limit: 20 }, ownerId);
+    expect(page.total).toBe(1);
+    expect(page.items.map((project) => project.name)).toEqual(['Owned']);
   });
 
   it('persists a rename', async () => {

@@ -19,11 +19,13 @@ import { ITaskRepository, TASK_REPOSITORY } from './application/ports/ITaskRepos
 import { PrismaProjectRepository } from './infrastructure/persistence/PrismaProjectRepository';
 import { PrismaTaskRepository } from './infrastructure/persistence/PrismaTaskRepository';
 import { InProcessEventPublisher } from './infrastructure/events/InProcessEventPublisher';
+import { AuthenticatedGuard } from './infrastructure/http/auth/AuthenticatedGuard';
 
 @Module({
   imports: [PrismaModule, EventEmitterModule.forRoot()],
   controllers: [ProjectsController, TasksController],
   providers: [
+    AuthenticatedGuard,
     { provide: PROJECT_REPOSITORY, useClass: PrismaProjectRepository },
     { provide: TASK_REPOSITORY, useClass: PrismaTaskRepository },
     { provide: EVENT_PUBLISHER, useClass: InProcessEventPublisher },

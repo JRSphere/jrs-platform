@@ -28,14 +28,16 @@ export class PrismaProjectRepository implements IProjectRepository {
     return project ? this.toDomain(project) : null;
   }
 
-  async findAll(request: PageRequest): Promise<Page<Project>> {
+  async findAll(request: PageRequest, ownerId: string): Promise<Page<Project>> {
+    const where = { ownerId };
     const [projects, total] = await this.prisma.$transaction([
       this.prisma.project.findMany({
+        where,
         skip: (request.page - 1) * request.limit,
         take: request.limit,
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       }),
-      this.prisma.project.count(),
+      this.prisma.project.count({ where }),
     ]);
     return {
       items: projects.map((project) => this.toDomain(project)),

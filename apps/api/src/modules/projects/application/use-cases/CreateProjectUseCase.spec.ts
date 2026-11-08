@@ -17,10 +17,11 @@ class ProjectRepositoryFake implements IProjectRepository {
     return null;
   }
 
-  async findAll(request: PageRequest): Promise<Page<Project>> {
+  async findAll(request: PageRequest, ownerId: string): Promise<Page<Project>> {
+    const owned = this.saved.filter((project) => project.isOwnedBy(ownerId));
     return {
-      items: this.saved.slice((request.page - 1) * request.limit, request.page * request.limit),
-      total: this.saved.length,
+      items: owned.slice((request.page - 1) * request.limit, request.page * request.limit),
+      total: owned.length,
       page: request.page,
       limit: request.limit,
     };

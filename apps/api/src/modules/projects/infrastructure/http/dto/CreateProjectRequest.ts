@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateProjectRequest {
@@ -7,10 +7,6 @@ export class CreateProjectRequest {
   @MaxLength(255)
   @ApiProperty({ type: String, maxLength: 255 })
   name!: string;
-
-  @IsUUID()
-  @ApiProperty({ type: String, format: 'uuid' })
-  ownerId!: string;
 
   @IsOptional()
   @IsString()

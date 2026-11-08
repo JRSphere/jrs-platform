@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import request from 'supertest';
+import supertest from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { PrismaService } from '../../../../infrastructure/prisma/PrismaService';
 import { AppModule } from '../../../../app.module';
@@ -17,13 +17,39 @@ if (!databaseName?.endsWith('_test')) {
 }
 
 const ownerId = '00000000-0000-4000-8000-000000000001';
+const otherOwnerId = '00000000-0000-4000-8000-000000000003';
 const assigneeId = '00000000-0000-4000-8000-000000000002';
 let app: INestApplication;
 let prisma: PrismaService;
 
-async function insertProject(name = 'Platform', createdAt = new Date()) {
+interface TestRequest {
+  header(name: string): string | undefined;
+  user?: { id: string };
+}
+
+function withTestUser<T extends { set(field: string, value: string): T }>(
+  test: T,
+  userId: string,
+): T {
+  return test.set('x-test-user', userId);
+}
+
+function request(server: ReturnType<INestApplication['getHttpServer']>, userId = ownerId) {
+  return {
+    get: (path: string) => withTestUser(supertest(server).get(path), userId),
+    post: (path: string) => withTestUser(supertest(server).post(path), userId),
+    patch: (path: string) => withTestUser(supertest(server).patch(path), userId),
+    delete: (path: string) => withTestUser(supertest(server).delete(path), userId),
+  };
+}
+
+async function insertProject(
+  name = 'Platform',
+  createdAt = new Date(),
+  projectOwnerId = ownerId,
+) {
   return prisma.project.create({
-    data: { id: randomUUID(), name, ownerId, createdAt, updatedAt: createdAt },
+    data: { id: randomUUID(), name, ownerId: projectOwnerId, createdAt, updatedAt: createdAt },
   });
 }
 
@@ -45,6 +71,13 @@ beforeAll(async () => {
   app = moduleRef.createNestApplication();
   configureApp(app);
   setupOpenApi(app);
+  app.use((req: TestRequest, _res: unknown, next: () => void) => {
+    const id = req.header('x-test-user');
+    if (id) {
+      (req as typeof req & { user?: { id: string } }).user = { id };
+    }
+    next();
+  });
   await app.init();
   prisma = app.get(PrismaService);
 });
@@ -76,6 +109,29 @@ describe('Projects HTTP API', () => {
       'POST /api/v1/projects',
       'POST /api/v1/projects/{projectId}/tasks',
     ]);
+  });
+
+  it.each([
+    ['POST', '/api/v1/projects'],
+    ['GET', '/api/v1/projects'],
+    ['PATCH', '/api/v1/projects/00000000-0000-4000-8000-000000000010'],
+    ['DELETE', '/api/v1/projects/00000000-0000-4000-8000-000000000010'],
+    ['POST', '/api/v1/projects/00000000-0000-4000-8000-000000000010/tasks'],
+    ['GET', '/api/v1/projects/00000000-0000-4000-8000-000000000010/tasks'],
+    ['PATCH', '/api/v1/tasks/00000000-0000-4000-8000-000000000010/status'],
+    ['PATCH', '/api/v1/tasks/00000000-0000-4000-8000-000000000010/assignee'],
+    ['PATCH', '/api/v1/tasks/00000000-0000-4000-8000-000000000010'],
+    ['DELETE', '/api/v1/tasks/00000000-0000-4000-8000-000000000010'],
+  ] as const)('rejects unauthenticated %s %s', async (method, path) => {
+    const client = supertest(app.getHttpServer());
+    const test = method === 'POST'
+      ? client.post(path)
+      : method === 'GET'
+        ? client.get(path)
+        : method === 'PATCH'
+          ? client.patch(path)
+          : client.delete(path);
+    await test.expect(401);
   });
 
   it('returns an empty project page for an empty database', async () => {
@@ -149,30 +205,103 @@ describe('Projects HTTP API', () => {
   it('creates a project', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/projects')
-      .send({ name: 'Platform', ownerId })
+      .send({ name: 'Platform' })
       .expect(201);
-    expect(response.body).toMatchObject({ id: expect.any(String), name: 'Platform' });
+    expect(response.body).toMatchObject({ id: expect.any(String), name: 'Platform', ownerId });
   });
 
   it('rejects an empty project name', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/projects')
-      .send({ name: '', ownerId })
+      .send({ name: '' })
       .expect(400);
   });
 
   it('rejects unknown project fields', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/projects')
-      .send({ name: 'Platform', ownerId, unexpected: true })
+      .send({ name: 'Platform', unexpected: true })
       .expect(400);
   });
 
-  it('rejects a non-UUID project owner', async () => {
+  it('rejects an ownerId supplied in the project body', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/projects')
-      .send({ name: 'Platform', ownerId: 'not-a-uuid' })
+      .send({ name: 'Platform', ownerId })
       .expect(400);
+  });
+
+  it('lists only the caller’s projects and returns their total', async () => {
+    const ownProject = await insertProject('Own');
+    await insertProject('Other 1', new Date(), otherOwnerId);
+    await insertProject('Other 2', new Date(), otherOwnerId);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .expect(200);
+    expect(response.body.total).toBe(1);
+    expect(response.body.items.map((project: { id: string }) => project.id))
+      .toEqual([ownProject.id]);
+  });
+
+  it('does not update another user’s project', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/projects/${project.id}`)
+      .send({ name: 'Changed' })
+      .expect(404);
+    expect((await prisma.project.findUnique({ where: { id: project.id } }))?.name)
+      .toBe('Private');
+  });
+
+  it('does not delete another user’s project', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/projects/${project.id}`)
+      .expect(404);
+    expect(await prisma.project.findUnique({ where: { id: project.id } })).not.toBeNull();
+  });
+
+  it('does not create a task in another user’s project', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/projects/${project.id}/tasks`)
+      .send({ title: 'Review' })
+      .expect(404);
+    expect(await prisma.task.count({ where: { projectId: project.id } })).toBe(0);
+  });
+
+  it('does not list tasks in another user’s project', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+    await insertTask(project.id);
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/${project.id}/tasks`)
+      .expect(404);
+  });
+
+  it('allows authenticated task-id routes without checking project ownership', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+    const task = await insertTask(project.id);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/status`)
+      .send({ status: 'IN_PROGRESS' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/assignee`)
+      .send({ assigneeId })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}`)
+      .send({ title: 'Updated' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete(`/api/v1/tasks/${task.id}`)
+      .expect(204);
   });
 
   it('updates only the project name and leaves its description unchanged', async () => {

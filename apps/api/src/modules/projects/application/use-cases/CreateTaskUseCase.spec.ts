@@ -16,8 +16,8 @@ class ProjectRepositoryFake implements IProjectRepository {
   async findById(id: string): Promise<Project | null> {
     return this.project?.id === id ? this.project : null;
   }
-  async findAll(request: PageRequest): Promise<Page<Project>> {
-    const items = this.project ? [this.project] : [];
+  async findAll(request: PageRequest, ownerId: string): Promise<Page<Project>> {
+    const items = this.project?.isOwnedBy(ownerId) ? [this.project] : [];
     return {
       items: items.slice((request.page - 1) * request.limit, request.page * request.limit),
       total: items.length,
@@ -58,7 +58,7 @@ describe('CreateTaskUseCase', () => {
     const events = new EventPublisherFake();
     const result = await new CreateTaskUseCase(
       new ProjectRepositoryFake(project), tasks, events,
-    ).execute({ projectId: project.id, title: 'Review' });
+    ).execute({ projectId: project.id, actorId: 'owner-1', title: 'Review' });
 
     expect(tasks.saved).toHaveLength(1);
     expect(result.id).toBe(tasks.saved[0].id);
@@ -70,7 +70,7 @@ describe('CreateTaskUseCase', () => {
     const events = new EventPublisherFake();
     await new CreateTaskUseCase(
       new ProjectRepositoryFake(project), new TaskRepositoryFake(), events,
-    ).execute({ projectId: project.id, title: 'Review' });
+    ).execute({ projectId: project.id, actorId: 'owner-1', title: 'Review' });
 
     expect(events.published).toHaveLength(1);
     expect(events.published[0]).toBeInstanceOf(TaskCreatedEvent);
@@ -81,7 +81,7 @@ describe('CreateTaskUseCase', () => {
     const events = new EventPublisherFake();
     await new CreateTaskUseCase(
       new ProjectRepositoryFake(project), new TaskRepositoryFake(), events,
-    ).execute({ projectId: project.id, title: 'Review', assigneeId: 'user-1' });
+    ).execute({ projectId: project.id, actorId: 'owner-1', title: 'Review', assigneeId: 'user-1' });
 
     expect(events.published).toHaveLength(2);
     expect(events.published[0]).toBeInstanceOf(TaskCreatedEvent);
@@ -95,8 +95,21 @@ describe('CreateTaskUseCase', () => {
     await expect(
       new CreateTaskUseCase(
         new ProjectRepositoryFake(null), tasks, events,
-      ).execute({ projectId: 'missing', title: 'Review' }),
+      ).execute({ projectId: 'missing', actorId: 'owner-1', title: 'Review' }),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(tasks.saved).toHaveLength(0);
+    expect(events.published).toHaveLength(0);
+  });
+
+  it('hides another owner’s project without saving or publishing', async () => {
+    const project = Project.create({ name: 'Platform', ownerId: 'owner-1' });
+    const tasks = new TaskRepositoryFake();
+    const events = new EventPublisherFake();
+
+    await expect(new CreateTaskUseCase(
+      new ProjectRepositoryFake(project), tasks, events,
+    ).execute({ projectId: project.id, actorId: 'owner-2', title: 'Review' }))
+      .rejects.toBeInstanceOf(NotFoundException);
     expect(tasks.saved).toHaveLength(0);
     expect(events.published).toHaveLength(0);
   });

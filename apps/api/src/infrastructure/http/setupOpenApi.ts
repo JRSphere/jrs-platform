@@ -7,6 +7,7 @@ export function setupOpenApi(app: INestApplication): void {
     .setTitle('JRSphere API')
     .setVersion('1.0')
     .setDescription('Projects module')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config, { include: [ProjectsModule] });
   SwaggerModule.setup('api/docs', app, document, { jsonDocumentUrl: 'api/docs-json' });

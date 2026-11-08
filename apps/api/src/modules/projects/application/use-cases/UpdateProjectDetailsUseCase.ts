@@ -9,7 +9,7 @@ export class UpdateProjectDetailsUseCase {
 
   async execute(input: UpdateProjectDetailsDto): Promise<ProjectResponseDto> {
     const project = await this.projects.findById(input.projectId);
-    if (!project) {
+    if (!project || !project.isOwnedBy(input.actorId)) {
       throw new NotFoundException('Project not found');
     }
 

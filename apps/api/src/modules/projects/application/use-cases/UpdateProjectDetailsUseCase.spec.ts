@@ -14,8 +14,8 @@ class ProjectRepositoryFake implements IProjectRepository {
   async findById(id: string): Promise<Project | null> {
     return this.project?.id === id ? this.project : null;
   }
-  async findAll(request: PageRequest): Promise<Page<Project>> {
-    const items = this.project ? [this.project] : [];
+  async findAll(request: PageRequest, ownerId: string): Promise<Page<Project>> {
+    const items = this.project?.isOwnedBy(ownerId) ? [this.project] : [];
     return {
       items: items.slice((request.page - 1) * request.limit, request.page * request.limit),
       total: items.length,
@@ -40,6 +40,7 @@ describe('UpdateProjectDetailsUseCase', () => {
     const repository = new ProjectRepositoryFake(project);
     const result = await new UpdateProjectDetailsUseCase(repository).execute({
       projectId: project.id,
+      actorId: 'owner-1',
       name: 'Updated',
       description: 'New details',
     });
@@ -56,7 +57,7 @@ describe('UpdateProjectDetailsUseCase', () => {
     const project = createProject();
     const result = await new UpdateProjectDetailsUseCase(
       new ProjectRepositoryFake(project),
-    ).execute({ projectId: project.id, name: 'Updated' });
+    ).execute({ projectId: project.id, actorId: 'owner-1', name: 'Updated' });
 
     expect(result.name).toBe('Updated');
     expect(result.description).toBe('Existing details');
@@ -66,6 +67,7 @@ describe('UpdateProjectDetailsUseCase', () => {
     await expect(
       new UpdateProjectDetailsUseCase(new ProjectRepositoryFake(null)).execute({
         projectId: 'missing',
+        actorId: 'owner-1',
         name: 'Updated',
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -76,8 +78,25 @@ describe('UpdateProjectDetailsUseCase', () => {
     const repository = new ProjectRepositoryFake(project);
 
     await expect(
-      new UpdateProjectDetailsUseCase(repository).execute({ projectId: project.id, name: ' ' }),
+      new UpdateProjectDetailsUseCase(repository).execute({
+        projectId: project.id,
+        actorId: 'owner-1',
+        name: ' ',
+      }),
     ).rejects.toBeInstanceOf(ValidationException);
+    expect(repository.updated).toHaveLength(0);
+  });
+
+  it('hides another owner’s project and does not update it', async () => {
+    const project = createProject();
+    const repository = new ProjectRepositoryFake(project);
+
+    await expect(new UpdateProjectDetailsUseCase(repository).execute({
+      projectId: project.id,
+      actorId: 'owner-2',
+      name: 'Changed',
+    })).rejects.toBeInstanceOf(NotFoundException);
+    expect(project.name).toBe('Original');
     expect(repository.updated).toHaveLength(0);
   });
 });

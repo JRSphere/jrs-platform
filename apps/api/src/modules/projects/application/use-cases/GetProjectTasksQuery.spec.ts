@@ -13,10 +13,11 @@ class ProjectRepositoryFake implements IProjectRepository {
   async findById(id: string): Promise<Project | null> {
     return this.projects.find((project) => project.id === id) ?? null;
   }
-  async findAll(request: PageRequest): Promise<Page<Project>> {
+  async findAll(request: PageRequest, ownerId: string): Promise<Page<Project>> {
+    const owned = this.projects.filter((project) => project.isOwnedBy(ownerId));
     return {
-      items: this.projects.slice((request.page - 1) * request.limit, request.page * request.limit),
-      total: this.projects.length,
+      items: owned.slice((request.page - 1) * request.limit, request.page * request.limit),
+      total: owned.length,
       page: request.page,
       limit: request.limit,
     };
@@ -27,11 +28,13 @@ class ProjectRepositoryFake implements IProjectRepository {
 
 class TaskRepositoryFake implements ITaskRepository {
   constructor(private readonly tasks: Task[]) {}
+  readonly projectLookups: string[] = [];
   async save(task: Task): Promise<Task> { return task; }
   async findById(id: string): Promise<Task | null> {
     return this.tasks.find((task) => task.id === id) ?? null;
   }
   async findByProjectId(projectId: string, request: PageRequest): Promise<Page<Task>> {
+    this.projectLookups.push(projectId);
     const items = this.tasks.filter((task) => task.projectId === projectId);
     return {
       items: items.slice((request.page - 1) * request.limit, request.page * request.limit),
@@ -56,7 +59,7 @@ describe('GetProjectTasksQuery', () => {
     ];
     const result = await new GetProjectTasksQuery(
       new ProjectRepositoryFake([first, second]), new TaskRepositoryFake(tasks),
-    ).execute(first.id, { page: 2, limit: 1 });
+    ).execute(first.id, { page: 2, limit: 1 }, 'owner-1');
 
     expect(result).toMatchObject({
       total: 3,
@@ -74,7 +77,7 @@ describe('GetProjectTasksQuery', () => {
     ];
     const result = await new GetProjectTasksQuery(
       new ProjectRepositoryFake([project]), new TaskRepositoryFake(tasks),
-    ).execute(project.id, { page: 2, limit: 2 });
+    ).execute(project.id, { page: 2, limit: 2 }, 'owner-1');
 
     expect(result).toEqual({ items: [], total: 2, page: 2, limit: 2 });
   });
@@ -84,7 +87,20 @@ describe('GetProjectTasksQuery', () => {
       new ProjectRepositoryFake([]), new TaskRepositoryFake([]),
     );
 
-    await expect(query.execute('missing', { page: 1, limit: 20 }))
+    await expect(query.execute('missing', { page: 1, limit: 20 }, 'owner-1'))
       .rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('hides another owner’s project without querying its tasks', async () => {
+    const project = Project.create({ name: 'Private', ownerId: 'owner-1' });
+    const taskRepository = new TaskRepositoryFake([
+      Task.create({ projectId: project.id, title: 'Private task' }),
+    ]);
+
+    await expect(new GetProjectTasksQuery(
+      new ProjectRepositoryFake([project]), taskRepository,
+    ).execute(project.id, { page: 1, limit: 20 }, 'owner-2'))
+      .rejects.toBeInstanceOf(NotFoundException);
+    expect(taskRepository.projectLookups).toEqual([]);
   });
 });

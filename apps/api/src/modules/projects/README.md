@@ -19,10 +19,10 @@ The application ports are `IProjectRepository`, `ITaskRepository`, and `IEventPu
 | Use case or query | Purpose |
 |---|---|
 | `CreateProjectUseCase` | Creates and persists a project. |
-| `ListProjectsQuery` | Returns a paginated project list. |
-| `UpdateProjectDetailsUseCase` | Updates a project's name or description. |
-| `CreateTaskUseCase` | Creates a task for an existing project. |
-| `GetProjectTasksQuery` | Returns a paginated task list for an existing project. |
+| `ListProjectsQuery` | Returns a paginated list of projects owned by the actor. |
+| `UpdateProjectDetailsUseCase` | Updates details only when the actor owns the project. |
+| `CreateTaskUseCase` | Creates a task only when the actor owns the project. |
+| `GetProjectTasksQuery` | Lists tasks only when the actor owns the project. |
 | `UpdateTaskDetailsUseCase` | Updates task title, description, or due date. |
 | `UpdateTaskStatusUseCase` | Changes task status when the transition is allowed. |
 | `AssignTaskUseCase` | Assigns a task to an assignee ID. |
@@ -68,6 +68,8 @@ Events are emitted only after the relevant repository save or update succeeds.
 
 Both list routes accept `page` (default `1`, minimum `1`) and `limit` (default `20`, range `1`–`100`). Paginated responses have the shape `{ items, total, page, limit }`. Project items contain `id`, `name`, `description`, `ownerId`, `createdAt`, and `updatedAt`; task items contain `id`, `projectId`, `title`, `description`, `assigneeId`, `status`, `dueDate`, `createdAt`, and `updatedAt`.
 
+All routes require an authenticated request with `request.user.id`; otherwise they return 401. Project-level routes only expose or modify projects owned by that user; missing and non-owned projects both return 404. Task routes addressed by task ID require authentication but do not check project ownership.
+
 The Swagger UI is at `/api/docs`; the OpenAPI JSON is at `/api/docs-json`. Domain exceptions return `{ statusCode, error, message }`: validation errors map to 400, not-found errors to 404, conflicts to 409, and other domain codes to 500. Request validation errors (invalid body, path or query values) use the default Nest 400 response, where `message` is a list.
 
 ## Database
@@ -88,6 +90,6 @@ Integration and E2E test files require `DATABASE_URL` to name a database ending 
 
 ## Known limitations
 
-- There is no authentication yet. Project creation takes `ownerId` from the request body, and the unfiltered project list returns every project to any caller.
+- Routes require `request.user.id` to be set by an upstream authentication layer (not implemented yet, so every request is rejected with 401 outside the tests). Project-level routes are owner-only. Task routes by task id (status, assignee, details, delete) require authentication but do not check ownership yet.
 - Events are synchronous and in-process, with no durable event storage or retry. A publishing failure after a successful save or update does not roll back the database change.
 - Deletes are permanent (hard delete) and publish no events. Deleting a project also deletes its tasks.

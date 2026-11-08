@@ -6,8 +6,8 @@ import { IProjectRepository } from '../ports/IProjectRepository';
 export class ListProjectsQuery {
   constructor(private readonly projects: IProjectRepository) {}
 
-  async execute(request: PageRequest): Promise<Page<ProjectResponseDto>> {
-    const result = await this.projects.findAll(request);
+  async execute(request: PageRequest, actorId: string): Promise<Page<ProjectResponseDto>> {
+    const result = await this.projects.findAll(request, actorId);
     return {
       items: result.items.map((project) => this.toResponse(project)),
       total: result.total,
