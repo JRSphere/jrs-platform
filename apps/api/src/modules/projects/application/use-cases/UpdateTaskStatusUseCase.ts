@@ -1,4 +1,3 @@
-import { NotFoundException } from '../../../../shared-kernel/exceptions/NotFoundException';
 import { TaskCompletedEvent } from '../../domain/events/TaskCompletedEvent';
 import { Task } from '../../domain/entities/Task';
 import { TaskStatus } from '../../domain/value-objects/TaskStatus';
@@ -6,18 +5,17 @@ import { TaskResponseDto } from '../dto/TaskResponseDto';
 import { UpdateTaskStatusDto } from '../dto/UpdateTaskStatusDto';
 import { IEventPublisher } from '../ports/IEventPublisher';
 import { ITaskRepository } from '../ports/ITaskRepository';
+import { TaskAccess } from '../TaskAccess';
 
 export class UpdateTaskStatusUseCase {
   constructor(
     private readonly tasks: ITaskRepository,
     private readonly events: IEventPublisher,
+    private readonly access: TaskAccess,
   ) {}
 
   async execute(input: UpdateTaskStatusDto): Promise<TaskResponseDto> {
-    const task = await this.tasks.findById(input.taskId);
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
+    const task = await this.access.loadOwnedTask(input.taskId, input.actorId);
 
     task.changeStatus(input.status);
     const updated = await this.tasks.update(task);

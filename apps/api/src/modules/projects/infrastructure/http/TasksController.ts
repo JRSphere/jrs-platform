@@ -22,6 +22,7 @@ import { UpdateTaskStatusRequest } from './dto/UpdateTaskStatusRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
 import { TaskResponse } from './dto/TaskResponse';
 import { AuthenticatedGuard } from './auth/AuthenticatedGuard';
+import { CurrentUserId } from './auth/CurrentUserId';
 
 @Controller('api/v1/tasks')
 @ApiTags('tasks')
@@ -47,9 +48,10 @@ export class TasksController {
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   updateStatus(
     @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentUserId() actorId: string,
     @Body() request: UpdateTaskStatusRequest,
   ) {
-    const input: UpdateTaskStatusDto = { taskId, status: request.status };
+    const input: UpdateTaskStatusDto = { taskId, actorId, status: request.status };
     return this.updateTaskStatus.execute(input);
   }
 
@@ -61,9 +63,10 @@ export class TasksController {
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   assign(
     @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentUserId() actorId: string,
     @Body() request: AssignTaskRequest,
   ) {
-    const input: AssignTaskDto = { taskId, assigneeId: request.assigneeId };
+    const input: AssignTaskDto = { taskId, actorId, assigneeId: request.assigneeId };
     return this.assignTask.execute(input);
   }
 
@@ -75,10 +78,12 @@ export class TasksController {
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   updateDetails(
     @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentUserId() actorId: string,
     @Body() request: UpdateTaskDetailsRequest,
   ) {
     const input: UpdateTaskDetailsDto = {
       taskId,
+      actorId,
       ...(request.title !== undefined && { title: request.title }),
       ...(request.description !== undefined && { description: request.description }),
       ...(request.dueDate !== undefined && {
@@ -97,7 +102,8 @@ export class TasksController {
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async delete(
     @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentUserId() actorId: string,
   ): Promise<void> {
-    await this.deleteTask.execute(taskId);
+    await this.deleteTask.execute(taskId, actorId);
   }
 }

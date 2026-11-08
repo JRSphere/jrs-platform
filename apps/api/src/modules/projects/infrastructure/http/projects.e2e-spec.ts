@@ -283,8 +283,8 @@ describe('Projects HTTP API', () => {
       .expect(404);
   });
 
-  it('allows authenticated task-id routes without checking project ownership', async () => {
-    const project = await insertProject('Private', new Date(), otherOwnerId);
+  it('allows the project owner to use authenticated task-id routes', async () => {
+    const project = await insertProject('Owned');
     const task = await insertTask(project.id);
 
     await request(app.getHttpServer())
@@ -302,6 +302,51 @@ describe('Projects HTTP API', () => {
     await request(app.getHttpServer())
       .delete(`/api/v1/tasks/${task.id}`)
       .expect(204);
+  });
+
+  it('does not update another user’s task status', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+    const task = await insertTask(project.id);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/status`)
+      .send({ status: 'IN_PROGRESS' })
+      .expect(404);
+    expect(await prisma.task.findUnique({ where: { id: task.id } }))
+      .toMatchObject({ status: 'TODO', assigneeId: null, title: 'Review' });
+  });
+
+  it('does not assign another user’s task', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+    const task = await insertTask(project.id);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/assignee`)
+      .send({ assigneeId })
+      .expect(404);
+    expect(await prisma.task.findUnique({ where: { id: task.id } }))
+      .toMatchObject({ status: 'TODO', assigneeId: null, title: 'Review' });
+  });
+
+  it('does not edit another user’s task details', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+    const task = await insertTask(project.id);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}`)
+      .send({ title: 'Changed' })
+      .expect(404);
+    expect(await prisma.task.findUnique({ where: { id: task.id } }))
+      .toMatchObject({ status: 'TODO', assigneeId: null, title: 'Review' });
+  });
+
+  it('does not delete another user’s task', async () => {
+    const project = await insertProject('Private', new Date(), otherOwnerId);
+    const task = await insertTask(project.id);
+
+    await request(app.getHttpServer()).delete(`/api/v1/tasks/${task.id}`).expect(404);
+    expect(await prisma.task.findUnique({ where: { id: task.id } }))
+      .toMatchObject({ status: 'TODO', assigneeId: null, title: 'Review' });
   });
 
   it('updates only the project name and leaves its description unchanged', async () => {
