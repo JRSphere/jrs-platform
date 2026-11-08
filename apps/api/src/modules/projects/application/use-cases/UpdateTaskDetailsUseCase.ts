@@ -1,17 +1,17 @@
-import { NotFoundException } from '../../../../shared-kernel/exceptions/NotFoundException';
 import { Task } from '../../domain/entities/Task';
 import { TaskResponseDto } from '../dto/TaskResponseDto';
 import { UpdateTaskDetailsDto } from '../dto/UpdateTaskDetailsDto';
 import { ITaskRepository } from '../ports/ITaskRepository';
+import { TaskAccess } from '../TaskAccess';
 
 export class UpdateTaskDetailsUseCase {
-  constructor(private readonly tasks: ITaskRepository) {}
+  constructor(
+    private readonly tasks: ITaskRepository,
+    private readonly access: TaskAccess,
+  ) {}
 
   async execute(input: UpdateTaskDetailsDto): Promise<TaskResponseDto> {
-    const task = await this.tasks.findById(input.taskId);
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
+    const task = await this.access.loadOwnedTask(input.taskId, input.actorId);
 
     task.updateDetails({
       ...(input.title !== undefined && { title: input.title }),

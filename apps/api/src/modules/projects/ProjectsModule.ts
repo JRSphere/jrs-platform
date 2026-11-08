@@ -20,6 +20,7 @@ import { PrismaProjectRepository } from './infrastructure/persistence/PrismaProj
 import { PrismaTaskRepository } from './infrastructure/persistence/PrismaTaskRepository';
 import { InProcessEventPublisher } from './infrastructure/events/InProcessEventPublisher';
 import { AuthenticatedGuard } from './infrastructure/http/auth/AuthenticatedGuard';
+import { TaskAccess } from './application/TaskAccess';
 
 @Module({
   imports: [PrismaModule, EventEmitterModule.forRoot()],
@@ -29,6 +30,12 @@ import { AuthenticatedGuard } from './infrastructure/http/auth/AuthenticatedGuar
     { provide: PROJECT_REPOSITORY, useClass: PrismaProjectRepository },
     { provide: TASK_REPOSITORY, useClass: PrismaTaskRepository },
     { provide: EVENT_PUBLISHER, useClass: InProcessEventPublisher },
+    {
+      provide: TaskAccess,
+      useFactory: (projects: IProjectRepository, tasks: ITaskRepository) =>
+        new TaskAccess(projects, tasks),
+      inject: [PROJECT_REPOSITORY, TASK_REPOSITORY],
+    },
     {
       provide: CreateProjectUseCase,
       useFactory: (projects: IProjectRepository) => new CreateProjectUseCase(projects),
@@ -56,20 +63,21 @@ import { AuthenticatedGuard } from './infrastructure/http/auth/AuthenticatedGuar
     },
     {
       provide: UpdateTaskStatusUseCase,
-      useFactory: (tasks: ITaskRepository, events: IEventPublisher) =>
-        new UpdateTaskStatusUseCase(tasks, events),
-      inject: [TASK_REPOSITORY, EVENT_PUBLISHER],
+      useFactory: (tasks: ITaskRepository, events: IEventPublisher, access: TaskAccess) =>
+        new UpdateTaskStatusUseCase(tasks, events, access),
+      inject: [TASK_REPOSITORY, EVENT_PUBLISHER, TaskAccess],
     },
     {
       provide: AssignTaskUseCase,
-      useFactory: (tasks: ITaskRepository, events: IEventPublisher) =>
-        new AssignTaskUseCase(tasks, events),
-      inject: [TASK_REPOSITORY, EVENT_PUBLISHER],
+      useFactory: (tasks: ITaskRepository, events: IEventPublisher, access: TaskAccess) =>
+        new AssignTaskUseCase(tasks, events, access),
+      inject: [TASK_REPOSITORY, EVENT_PUBLISHER, TaskAccess],
     },
     {
       provide: UpdateTaskDetailsUseCase,
-      useFactory: (tasks: ITaskRepository) => new UpdateTaskDetailsUseCase(tasks),
-      inject: [TASK_REPOSITORY],
+      useFactory: (tasks: ITaskRepository, access: TaskAccess) =>
+        new UpdateTaskDetailsUseCase(tasks, access),
+      inject: [TASK_REPOSITORY, TaskAccess],
     },
     {
       provide: UpdateProjectDetailsUseCase,
@@ -78,8 +86,9 @@ import { AuthenticatedGuard } from './infrastructure/http/auth/AuthenticatedGuar
     },
     {
       provide: DeleteTaskUseCase,
-      useFactory: (tasks: ITaskRepository) => new DeleteTaskUseCase(tasks),
-      inject: [TASK_REPOSITORY],
+      useFactory: (tasks: ITaskRepository, access: TaskAccess) =>
+        new DeleteTaskUseCase(tasks, access),
+      inject: [TASK_REPOSITORY, TaskAccess],
     },
     {
       provide: DeleteProjectUseCase,
