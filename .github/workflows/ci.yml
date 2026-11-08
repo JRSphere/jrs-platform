@@ -33,6 +33,9 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      # Make this blocking once findings in apps/web and packages/shared-types are fixed.
+      - run: pnpm audit --audit-level=high
+        continue-on-error: true
       - run: pnpm --filter @jrs-platform/api run prisma:generate
       - run: pnpm --filter @jrs-platform/api run prisma:migrate:deploy
       - run: pnpm lint
