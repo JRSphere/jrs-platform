@@ -1,11 +1,13 @@
-import { Body, Controller, Delete, HttpCode, HttpStatus, Inject, Param, ParseUUIDPipe, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, HttpStatus, Inject, Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AssignTaskDto } from '../../application/dto/AssignTaskDto';
 import { UpdateTaskStatusDto } from '../../application/dto/UpdateTaskStatusDto';
@@ -19,9 +21,12 @@ import { UpdateTaskDetailsRequest } from './dto/UpdateTaskDetailsRequest';
 import { UpdateTaskStatusRequest } from './dto/UpdateTaskStatusRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
 import { TaskResponse } from './dto/TaskResponse';
+import { AuthenticatedGuard } from './auth/AuthenticatedGuard';
 
 @Controller('api/v1/tasks')
 @ApiTags('tasks')
+@ApiBearerAuth()
+@UseGuards(AuthenticatedGuard)
 export class TasksController {
   constructor(
     @Inject(UpdateTaskStatusUseCase)
@@ -39,6 +44,7 @@ export class TasksController {
   @ApiOkResponse({ type: TaskResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   updateStatus(
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @Body() request: UpdateTaskStatusRequest,
@@ -52,6 +58,7 @@ export class TasksController {
   @ApiOkResponse({ type: TaskResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   assign(
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @Body() request: AssignTaskRequest,
@@ -65,6 +72,7 @@ export class TasksController {
   @ApiOkResponse({ type: TaskResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   updateDetails(
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @Body() request: UpdateTaskDetailsRequest,
@@ -86,6 +94,7 @@ export class TasksController {
   @ApiNoContentResponse()
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   async delete(
     @Param('taskId', ParseUUIDPipe) taskId: string,
   ): Promise<void> {

@@ -14,9 +14,10 @@ export class GetProjectTasksQuery {
   async execute(
     projectId: string,
     request: PageRequest,
+    actorId: string,
   ): Promise<Page<TaskResponseDto>> {
     const project = await this.projects.findById(projectId);
-    if (!project) {
+    if (!project || !project.isOwnedBy(actorId)) {
       throw new NotFoundException('Project not found');
     }
     const result = await this.tasks.findByProjectId(projectId, request);

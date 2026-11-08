@@ -15,6 +15,12 @@ describe('Project', () => {
     expect(project.description).toBeNull();
   });
 
+  it('checks whether a user owns the project', () => {
+    const project = createProject({ ownerId: 'owner-1' });
+    expect(project.isOwnedBy('owner-1')).toBe(true);
+    expect(project.isOwnedBy('owner-2')).toBe(false);
+  });
+
   it('trims the name', () => {
     expect(createProject({ name: '  Platform  ' }).name).toBe('Platform');
   });

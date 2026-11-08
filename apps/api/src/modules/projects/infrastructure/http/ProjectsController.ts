@@ -1,5 +1,20 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
   ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -7,6 +22,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CreateProjectDto } from '../../application/dto/CreateProjectDto';
 import { CreateTaskDto } from '../../application/dto/CreateTaskDto';
@@ -17,6 +33,8 @@ import { ListProjectsQuery } from '../../application/use-cases/ListProjectsQuery
 import { UpdateProjectDetailsUseCase } from '../../application/use-cases/UpdateProjectDetailsUseCase';
 import { UpdateProjectDetailsDto } from '../../application/dto/UpdateProjectDetailsDto';
 import { DeleteProjectUseCase } from '../../application/use-cases/DeleteProjectUseCase';
+import { AuthenticatedGuard } from './auth/AuthenticatedGuard';
+import { CurrentUserId } from './auth/CurrentUserId';
 import { CreateProjectRequest } from './dto/CreateProjectRequest';
 import { CreateTaskRequest } from './dto/CreateTaskRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
@@ -29,6 +47,8 @@ import { UpdateProjectDetailsRequest } from './dto/UpdateProjectDetailsRequest';
 
 @Controller('api/v1/projects')
 @ApiTags('projects')
+@ApiBearerAuth()
+@UseGuards(AuthenticatedGuard)
 export class ProjectsController {
   constructor(
     @Inject(CreateProjectUseCase)
@@ -45,20 +65,24 @@ export class ProjectsController {
     private readonly deleteProject: DeleteProjectUseCase,
   ) {}
 
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   @Post()
   @ApiOperation({ summary: 'Create a project' })
   @ApiCreatedResponse({ type: ProjectResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  createProjectRequest(@Body() request: CreateProjectRequest) {
-    // ownerId comes from the body only until the identity JWT guard exists.
+  createProjectRequest(
+    @CurrentUserId() actorId: string,
+    @Body() request: CreateProjectRequest,
+  ) {
     const input: CreateProjectDto = {
       name: request.name,
-      ownerId: request.ownerId,
+      ownerId: actorId,
       description: request.description,
     };
     return this.createProject.execute(input);
   }
 
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   @Post(':projectId/tasks')
   @ApiOperation({ summary: 'Create a task in a project' })
   @ApiCreatedResponse({ type: TaskResponse })
@@ -66,10 +90,12 @@ export class ProjectsController {
   @ApiNotFoundResponse({ type: ErrorResponse })
   createTaskRequest(
     @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUserId() actorId: string,
     @Body() request: CreateTaskRequest,
   ) {
     const input: CreateTaskDto = {
       projectId,
+      actorId,
       title: request.title,
       description: request.description,
       assigneeId: request.assigneeId,
@@ -82,15 +108,18 @@ export class ProjectsController {
   @ApiOperation({ summary: 'List projects' })
   @ApiOkResponse({ type: ProjectPageResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   list(
     @Query() query: PageQuery,
+    @CurrentUserId() actorId: string,
   ) {
     return this.listProjects.execute({
       page: query.page,
       limit: query.limit,
-    });
+    }, actorId);
   }
 
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   @Patch(':projectId')
   @ApiOperation({ summary: 'Update project details' })
   @ApiOkResponse({ type: ProjectResponse })
@@ -98,10 +127,12 @@ export class ProjectsController {
   @ApiNotFoundResponse({ type: ErrorResponse })
   updateDetails(
     @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUserId() actorId: string,
     @Body() request: UpdateProjectDetailsRequest,
   ) {
     const input: UpdateProjectDetailsDto = {
       projectId,
+      actorId,
       ...(request.name !== undefined && { name: request.name }),
       ...(request.description !== undefined && { description: request.description }),
     };
@@ -114,12 +145,15 @@ export class ProjectsController {
   @ApiNoContentResponse()
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   async delete(
     @Param('projectId', ParseUUIDPipe) projectId: string,
+    @CurrentUserId() actorId: string,
   ): Promise<void> {
-    await this.deleteProject.execute(projectId);
+    await this.deleteProject.execute(projectId, actorId);
   }
 
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   @Get(':projectId/tasks')
   @ApiOperation({ summary: 'List tasks in a project' })
   @ApiOkResponse({ type: TaskPageResponse })
@@ -128,10 +162,11 @@ export class ProjectsController {
   getTasks(
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Query() query: PageQuery,
+    @CurrentUserId() actorId: string,
   ) {
     return this.getProjectTasks.execute(projectId, {
       page: query.page,
       limit: query.limit,
-    });
+    }, actorId);
   }
 }

@@ -4,9 +4,9 @@ import { IProjectRepository } from '../ports/IProjectRepository';
 export class DeleteProjectUseCase {
   constructor(private readonly projects: IProjectRepository) {}
 
-  async execute(projectId: string): Promise<void> {
+  async execute(projectId: string, actorId: string): Promise<void> {
     const project = await this.projects.findById(projectId);
-    if (!project) {
+    if (!project || !project.isOwnedBy(actorId)) {
       throw new NotFoundException('Project not found');
     }
     await this.projects.delete(projectId);

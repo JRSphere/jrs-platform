@@ -17,7 +17,7 @@ export class CreateTaskUseCase {
 
   async execute(input: CreateTaskDto): Promise<TaskResponseDto> {
     const project = await this.projects.findById(input.projectId);
-    if (!project) {
+    if (!project || !project.isOwnedBy(input.actorId)) {
       throw new NotFoundException('Project not found');
     }
 

@@ -60,6 +60,10 @@ export class Project {
     return new Project(props);
   }
 
+  isOwnedBy(userId: string): boolean {
+    return this.ownerId === userId;
+  }
+
   updateDetails(changes: ProjectDetailsChanges): void {
     if (changes.name === undefined && changes.description === undefined) {
       throw new ValidationException('At least one field must be provided');
