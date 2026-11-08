@@ -21,8 +21,8 @@ import { UpdateTaskDetailsRequest } from './dto/UpdateTaskDetailsRequest';
 import { UpdateTaskStatusRequest } from './dto/UpdateTaskStatusRequest';
 import { ErrorResponse } from './dto/ErrorResponse';
 import { TaskResponse } from './dto/TaskResponse';
-import { AuthenticatedGuard } from './auth/AuthenticatedGuard';
-import { CurrentUserId } from './auth/CurrentUserId';
+import { AuthenticatedGuard } from '../../../../infrastructure/http/auth/AuthenticatedGuard';
+import { CurrentUserId } from '../../../../infrastructure/http/auth/CurrentUserId';
 
 @Controller('api/v1/tasks')
 @ApiTags('tasks')

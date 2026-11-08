@@ -19,7 +19,7 @@ import { ITaskRepository, TASK_REPOSITORY } from './application/ports/ITaskRepos
 import { PrismaProjectRepository } from './infrastructure/persistence/PrismaProjectRepository';
 import { PrismaTaskRepository } from './infrastructure/persistence/PrismaTaskRepository';
 import { InProcessEventPublisher } from './infrastructure/events/InProcessEventPublisher';
-import { AuthenticatedGuard } from './infrastructure/http/auth/AuthenticatedGuard';
+import { AuthenticatedGuard } from '../../infrastructure/http/auth/AuthenticatedGuard';
 import { TaskAccess } from './application/TaskAccess';
 
 @Module({
