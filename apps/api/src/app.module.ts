@@ -3,12 +3,14 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DomainExceptionFilter } from './infrastructure/http/DomainExceptionFilter';
 import { ProjectsModule } from './modules/projects/ProjectsModule';
+import { NotificationsModule } from './modules/notifications/NotificationsModule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
   imports: [
     ProjectsModule,
+    NotificationsModule,
     ThrottlerModule.forRoot([
       {
         limit: 100,
