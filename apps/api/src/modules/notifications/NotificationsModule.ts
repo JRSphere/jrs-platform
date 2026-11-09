@@ -10,10 +10,14 @@ import {
 } from './application/ports/INotificationRepository';
 import { TaskAssignedListener } from './infrastructure/events/TaskAssignedListener';
 import { PrismaNotificationRepository } from './infrastructure/persistence/PrismaNotificationRepository';
+import { AuthenticatedGuard } from '../../infrastructure/http/auth/AuthenticatedGuard';
+import { NotificationsController } from './infrastructure/http/NotificationsController';
 
 @Module({
   imports: [PrismaModule],
+  controllers: [NotificationsController],
   providers: [
+    AuthenticatedGuard,
     { provide: NOTIFICATION_REPOSITORY, useClass: PrismaNotificationRepository },
     {
       provide: CreateNotificationUseCase,
