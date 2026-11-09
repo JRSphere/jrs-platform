@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ProjectsModule } from '../../modules/projects/ProjectsModule';
+import { NotificationsModule } from '../../modules/notifications/NotificationsModule';
 
 export function setupOpenApi(app: INestApplication): void {
   if (process.env.NODE_ENV === 'production') {
@@ -13,6 +14,8 @@ export function setupOpenApi(app: INestApplication): void {
     .setDescription('Projects module')
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, config, { include: [ProjectsModule] });
+  const document = SwaggerModule.createDocument(app, config, {
+    include: [ProjectsModule, NotificationsModule],
+  });
   SwaggerModule.setup('api/docs', app, document, { jsonDocumentUrl: 'api/docs-json' });
 }

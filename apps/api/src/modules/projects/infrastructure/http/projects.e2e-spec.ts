@@ -100,8 +100,11 @@ describe('Projects HTTP API', () => {
     expect(pathMethods.sort()).toEqual([
       'DELETE /api/v1/projects/{projectId}',
       'DELETE /api/v1/tasks/{taskId}',
+      'GET /api/v1/notifications',
+      'GET /api/v1/notifications/unread-count',
       'GET /api/v1/projects',
       'GET /api/v1/projects/{projectId}/tasks',
+      'PATCH /api/v1/notifications/{notificationId}/read',
       'PATCH /api/v1/projects/{projectId}',
       'PATCH /api/v1/tasks/{taskId}',
       'PATCH /api/v1/tasks/{taskId}/assignee',
