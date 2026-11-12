@@ -1,6 +1,6 @@
 import { User } from '../../domain/entities/User';
+import { Password } from '../../domain/value-objects/Password';
 import { ConflictException } from '../../../../shared-kernel/exceptions/ConflictException';
-import { ValidationException } from '../../../../shared-kernel/exceptions/ValidationException';
 import { IUserRepository } from '../ports/IUserRepository';
 import { PasswordHasher } from '../ports/PasswordHasher';
 import { RegisterUserDto } from '../dto/RegisterUserDto';
@@ -13,9 +13,8 @@ export class RegisterUserUseCase {
   ) {}
 
   async execute(input: RegisterUserDto): Promise<UserResponseDto> {
-    if (input.password.length < 8) {
-      throw new ValidationException('Password must be at least 8 characters');
-    }
+    // Password rules live only in the Password value object.
+    Password.create(input.password);
 
     const email = input.email.trim().toLowerCase();
     const existing = await this.users.findByEmail(email);
