@@ -14,6 +14,14 @@ export interface CreateUserProps {
   lastName: string;
 }
 
+export interface RestoreUserProps extends CreateUserProps {
+  id: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class User {
   readonly id: string;
   readonly email: string;
@@ -53,6 +61,15 @@ export class User {
       randomUUID(),
       new Date(),
     );
+  }
+
+  // Rebuilds a user from stored data. Used by repositories, not by use cases.
+  static restore(props: RestoreUserProps): User {
+    const user = new User(props, props.id, props.createdAt);
+    user.role = props.role;
+    user.isActive = props.isActive;
+    user.updatedAt = props.updatedAt;
+    return user;
   }
 
   getFullName(): string {
