@@ -4,6 +4,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DomainExceptionFilter } from './infrastructure/http/DomainExceptionFilter';
 import { ProjectsModule } from './modules/projects/ProjectsModule';
 import { NotificationsModule } from './modules/notifications/NotificationsModule';
+import { IdentityModule } from './modules/identity/IdentityModule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -11,6 +12,7 @@ import { AppService } from './app.service';
   imports: [
     ProjectsModule,
     NotificationsModule,
+    IdentityModule,
     ThrottlerModule.forRoot([
       {
         limit: 100,
