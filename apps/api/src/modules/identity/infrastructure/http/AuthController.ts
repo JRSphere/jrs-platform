@@ -1,10 +1,12 @@
 import { Body, Controller, HttpCode, HttpStatus, Inject, Post } from '@nestjs/common';
 import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase';
 import { LoginUserUseCase } from '../../application/use-cases/LoginUserUseCase';
-import { TOKEN_SERVICE, type TokenService } from '../../application/ports/TokenService';
+import type { TokenService } from '../../application/ports/TokenService';
+import { TOKEN_SERVICE } from '../../application/ports/TokenService';
 import { UserResponseDto } from '../../application/dto/UserResponseDto';
 import { RegisterUserRequest } from './dto/RegisterUserRequest';
 import { LoginRequest } from './dto/LoginRequest';
+import { Public } from '../../../../infrastructure/http/auth/Public';
 
 export interface LoginResponse {
   accessToken: string;
@@ -15,15 +17,17 @@ export class AuthController {
   constructor(
     private readonly registerUser: RegisterUserUseCase,
     private readonly loginUser: LoginUserUseCase,
-        @Inject(TOKEN_SERVICE) private readonly tokens: TokenService,
+    @Inject(TOKEN_SERVICE) private readonly tokens: TokenService,
   ) {}
 
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() body: RegisterUserRequest): Promise<UserResponseDto> {
     return this.registerUser.execute(body);
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() body: LoginRequest): Promise<LoginResponse> {
