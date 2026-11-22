@@ -24,3 +24,39 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* JRS design tokens */
+:root {
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.15);
+  --surface: #ffffff;
+  --surface-border: rgba(0, 0, 0, 0.08);
+  --radius-card: 16px;
+  --shadow-card: 0 10px 30px -12px rgba(15, 23, 42, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #818cf8;
+    --accent-soft: rgba(129, 140, 248, 0.18);
+    --surface: #111418;
+    --surface-border: rgba(255, 255, 255, 0.08);
+    --shadow-card: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Soft entrance for any element with this class */
+@keyframes jrs-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.jrs-rise {
+  animation: jrs-rise 0.5s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jrs-rise {
+    animation: none;
+  }
+}
