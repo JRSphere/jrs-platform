@@ -105,3 +105,30 @@
     transform: none;
   }
 }
+/* Default dark theme for the whole app */
+:root {
+  --background: #07090d;
+  --foreground: #e6e9ef;
+  --surface: #0f141c;
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --accent: #818cf8;
+  --accent-soft: rgba(129, 140, 248, 0.18);
+  --shadow-card: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(900px 500px at 10% -10%, rgba(129, 140, 248, 0.18), transparent 60%),
+    radial-gradient(800px 500px at 110% 10%, rgba(56, 189, 248, 0.12), transparent 60%),
+    var(--background);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
