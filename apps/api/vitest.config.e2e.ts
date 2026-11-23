@@ -14,6 +14,7 @@ export default defineConfig({
     }),
   ],
   test: {
+    env: { JWT_SECRET: 'test-only-jwt-secret-with-at-least-32-characters' },
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],

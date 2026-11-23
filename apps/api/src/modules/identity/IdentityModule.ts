@@ -39,6 +39,6 @@ export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
       inject: [USER_REPOSITORY, PASSWORD_HASHER],
     },
   ],
-  exports: [RegisterUserUseCase, LoginUserUseCase],
+  exports: [JwtModule, RegisterUserUseCase, LoginUserUseCase],
 })
 export class IdentityModule {}
