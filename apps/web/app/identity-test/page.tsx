@@ -44,9 +44,9 @@ export default function IdentityTestPage() {
           <div className="space-y-3">
             <input className="w-full rounded-lg border border-[var(--surface-border)] bg-transparent p-2" value={email} onChange={(e) => setEmail(e.target.value)} />
             <input className="w-full rounded-lg border border-[var(--surface-border)] bg-transparent p-2" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <div className="flex gap-2">
-              <button className="rounded-lg bg-[var(--accent)] px-4 py-2 text-white transition hover:opacity-90" onClick={login}>Login</button>
-              <button className="rounded-lg border border-[var(--surface-border)] px-4 py-2 transition hover:opacity-90 disabled:opacity-40" onClick={loadProjects} disabled={!token}>Load projects</button>
+                        <div className="flex gap-3">
+              <button className="jrs-btn" onClick={login}>Login</button>
+              <button className="jrs-btn jrs-btn-ghost" onClick={loadProjects} disabled={!token}>Load projects</button>
             </div>
             <p className="text-sm opacity-80">{message}</p>
           </div>
