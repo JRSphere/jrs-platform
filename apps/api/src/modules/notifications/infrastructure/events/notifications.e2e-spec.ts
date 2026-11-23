@@ -7,6 +7,7 @@ import { PrismaService } from '../../../../infrastructure/prisma/PrismaService';
 import { configureApp } from '../../../../infrastructure/http/configureApp';
 import { setupOpenApi } from '../../../../infrastructure/http/setupOpenApi';
 import { AppModule } from '../../../../app.module';
+import { tokenFor } from '../../../../../test/support/signTestToken';
 
 const databaseUrl = process.env.DATABASE_URL;
 const databaseName = databaseUrl
@@ -21,16 +22,11 @@ const assigneeId = randomUUID();
 let app: INestApplication;
 let prisma: PrismaService;
 
-interface TestRequest {
-  header(name: string): string | undefined;
-  user?: { id: string };
-}
-
 function withTestUser<T extends { set(field: string, value: string): T }>(
   test: T,
   userId: string,
 ): T {
-  return test.set('x-test-user', userId);
+  return test.set('Authorization', `Bearer ${tokenFor(userId)}`);
 }
 
 function request(server: ReturnType<INestApplication['getHttpServer']>, userId = ownerId) {
@@ -90,13 +86,6 @@ beforeAll(async () => {
   app = moduleRef.createNestApplication();
   configureApp(app);
   setupOpenApi(app);
-  app.use((req: TestRequest, _res: unknown, next: () => void) => {
-    const id = req.header('x-test-user');
-    if (id) {
-      (req as typeof req & { user?: { id: string } }).user = { id };
-    }
-    next();
-  });
   await app.init();
   prisma = app.get(PrismaService);
 });

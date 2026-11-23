@@ -5,6 +5,7 @@ import { TOKEN_SERVICE, type TokenService } from '../../application/ports/TokenS
 import { UserResponseDto } from '../../application/dto/UserResponseDto';
 import { RegisterUserRequest } from './dto/RegisterUserRequest';
 import { LoginRequest } from './dto/LoginRequest';
+import { Public } from '../../../../infrastructure/http/auth/Public';
 
 export interface LoginResponse {
   accessToken: string;
@@ -20,12 +21,14 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @Public()
   async register(@Body() body: RegisterUserRequest): Promise<UserResponseDto> {
     return this.registerUser.execute(body);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Public()
   async login(@Body() body: LoginRequest): Promise<LoginResponse> {
     const user = await this.loginUser.execute(body.email, body.password);
     const accessToken = await this.tokens.sign({ sub: user.userId, role: user.role });
