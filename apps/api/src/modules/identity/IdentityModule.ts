@@ -10,15 +10,18 @@ import { PasswordHasher, PASSWORD_HASHER } from './application/ports/PasswordHas
 import { TokenService, TOKEN_SERVICE } from './application/ports/TokenService';
 import { RegisterUserUseCase } from './application/use-cases/RegisterUserUseCase';
 import { LoginUserUseCase } from './application/use-cases/LoginUserUseCase';
+import { readJwtSecret } from './infrastructure/security/readJwtSecret';
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
 
 @Module({
   imports: [
     PrismaModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1h' },
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: readJwtSecret(),
+        signOptions: { expiresIn: '1h' },
+      }),
     }),
   ],
   controllers: [AuthController],
