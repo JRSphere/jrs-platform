@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://jrsphere:test_password@localhost:5432/jrsphere_test
+      # Throwaway value used only in CI.
+      JWT_SECRET: ci-only-throwaway-jwt-secret-at-least-32-characters
     services:
       postgres:
         image: postgres:16
