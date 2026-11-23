@@ -19,6 +19,7 @@ export default function IdentityTestPage() {
     try {
       const res = await api.post<{ accessToken: string }>("/api/v1/auth/login", { email, password });
       setToken(res.data.accessToken);
+            localStorage.setItem("jrs_token", res.data.accessToken);
       setMessage("Logged in. Token received.");
     } catch {
       setMessage("Login failed. Check email and password.");
