@@ -95,6 +95,41 @@ describe('UpdateTaskStatusUseCase', () => {
 
     expect(events.published).toHaveLength(1);
     expect(events.published[0]).toBeInstanceOf(TaskCompletedEvent);
+    expect(events.published[0]).toMatchObject({
+      taskId: task.id,
+      actorId: 'owner-1',
+      assigneeId: null,
+    });
+  });
+
+  it('publishes actorId and assigneeId on the completion event', async () => {
+    const project = Project.create({ name: 'Platform', ownerId: 'owner-1' });
+    const task = Task.restore({
+      id: 'task-1',
+      projectId: project.id,
+      title: 'Review',
+      description: null,
+      assigneeId: 'user-1',
+      status: TaskStatus.IN_PROGRESS,
+      dueDate: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const events = new EventPublisherFake();
+    const tasks = new TaskRepositoryFake(task);
+
+    await new UpdateTaskStatusUseCase(
+      tasks, events, new TaskAccess(new ProjectRepositoryFake(project), tasks),
+    ).execute({
+      taskId: task.id,
+      actorId: 'owner-1',
+      status: TaskStatus.DONE,
+    });
+
+    expect(events.published[0]).toMatchObject({
+      actorId: 'owner-1',
+      assigneeId: 'user-1',
+    });
   });
 
   it('does not publish a completion event when moved to IN_PROGRESS', async () => {

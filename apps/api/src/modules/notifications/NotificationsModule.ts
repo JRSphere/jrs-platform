@@ -12,6 +12,7 @@ import { TaskAssignedListener } from './infrastructure/events/TaskAssignedListen
 import { PrismaNotificationRepository } from './infrastructure/persistence/PrismaNotificationRepository';
 import { AuthenticatedGuard } from '../../infrastructure/http/auth/AuthenticatedGuard';
 import { NotificationsController } from './infrastructure/http/NotificationsController';
+import { TaskCompletedListener } from './infrastructure/events/TaskCompletedListener';
 
 @Module({
   imports: [PrismaModule],
@@ -44,6 +45,7 @@ import { NotificationsController } from './infrastructure/http/NotificationsCont
       inject: [NOTIFICATION_REPOSITORY],
     },
     TaskAssignedListener,
+    TaskCompletedListener,
   ],
   exports: [
     CreateNotificationUseCase,
