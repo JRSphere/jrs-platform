@@ -25,6 +25,9 @@ export function Header() {
           <Link href="/projects" className="text-[var(--foreground)] opacity-80 no-underline hover:opacity-100">
             Projects
           </Link>
+          <Link href="/notifications" className="text-[var(--foreground)] opacity-80 no-underline hover:opacity-100">
+            Notifications
+          </Link>
           {signedIn ? (
             <button onClick={signOut} className="jrs-btn jrs-btn-ghost text-sm">
               Sign out
