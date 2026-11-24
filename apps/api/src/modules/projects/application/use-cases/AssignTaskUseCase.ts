@@ -22,7 +22,9 @@ export class AssignTaskUseCase {
     if (assigneeId === null) {
       throw new Error('Assigned task is missing its assignee');
     }
-    await this.events.publish(new TaskAssignedEvent(updated.id, updated.projectId, assigneeId));
+    await this.events.publish(
+      new TaskAssignedEvent(updated.id, updated.projectId, assigneeId, input.actorId),
+    );
     return this.toResponse(updated);
   }
 

@@ -26,7 +26,7 @@ export class CreateTaskUseCase {
     await this.events.publish(new TaskCreatedEvent(saved.id, saved.projectId, saved.assigneeId));
     if (saved.assigneeId !== null) {
       await this.events.publish(
-        new TaskAssignedEvent(saved.id, saved.projectId, saved.assigneeId),
+        new TaskAssignedEvent(saved.id, saved.projectId, saved.assigneeId, input.actorId),
       );
     }
     return this.toResponse(saved);
