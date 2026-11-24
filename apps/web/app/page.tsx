@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { TiltCard } from "@/components/ui/TiltCard";
-import { CursorGlow } from "@/components/ui/CursorGlow";
+import { PageShell } from "@/components/layout/PageShell";
 
 const features = [
   { title: "Projects", text: "Plan work, assign tasks, and track progress in one place." },
@@ -10,24 +13,40 @@ const features = [
 ];
 
 export default function HomePage() {
-  return (
-    <main className="relative mx-auto max-w-5xl space-y-16 px-6 py-20">
-      <CursorGlow />
+  const heroRef = useRef<HTMLElement>(null);
 
-      <section className="jrs-rise space-y-6 text-center">
+  function onMove(e: React.MouseEvent<HTMLElement>) {
+    const el = heroRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    el.style.setProperty("--my", `${e.clientY - r.top}px`);
+  }
+
+  return (
+    <PageShell>
+      <section
+        ref={heroRef}
+        onMouseMove={onMove}
+        className="jrs-card relative overflow-hidden p-10 text-center sm:p-16"
+        style={{
+          backgroundImage:
+            "radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), rgba(129,140,248,0.28), transparent 60%)",
+        }}
+      >
         <p className="text-sm font-medium uppercase tracking-widest text-[var(--accent)]">
           JRSphere Office Platform
         </p>
-        <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+        <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-6xl">
           Run your whole office
           <span className="block text-[var(--accent)]">from one calm place.</span>
         </h1>
-        <p className="mx-auto max-w-2xl text-lg opacity-70">
+        <p className="mx-auto mt-6 max-w-2xl text-lg opacity-70">
           Projects, tasks, and team notifications, built to be fast, clear, and easy to use.
         </p>
-        <div className="flex justify-center gap-3">
-          <Link href="/identity-test" className="jrs-btn">Get started</Link>
-          <Link href="/identity-test" className="jrs-btn jrs-btn-ghost">Sign in</Link>
+        <div className="mt-8 flex justify-center gap-3">
+          <Link href="/projects" className="jrs-btn no-underline">Get started</Link>
+          <Link href="/identity-test" className="jrs-btn jrs-btn-ghost no-underline">Sign in</Link>
         </div>
       </section>
 
@@ -40,6 +59,6 @@ export default function HomePage() {
           </TiltCard>
         ))}
       </section>
-    </main>
+    </PageShell>
   );
 }
