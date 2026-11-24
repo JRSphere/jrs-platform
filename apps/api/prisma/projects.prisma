@@ -15,6 +15,7 @@ model Project {
   updatedAt   DateTime @map("updated_at") @db.Timestamptz(3)
   tasks       Task[]
 
+  @@index([ownerId, createdAt, id])
   @@map("projects")
   @@schema("projects")
 }
@@ -31,7 +32,7 @@ model Task {
   updatedAt   DateTime   @map("updated_at") @db.Timestamptz(3)
   project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@index([projectId])
+  @@index([projectId, createdAt, id])
   @@index([status])
   @@map("tasks")
   @@schema("projects")
