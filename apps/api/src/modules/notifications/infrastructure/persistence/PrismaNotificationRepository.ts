@@ -8,6 +8,7 @@ import { INotificationRepository } from '../../application/ports/INotificationRe
 
 const notificationTypes: Readonly<Record<string, NotificationType>> = {
   [NotificationType.TASK_ASSIGNED]: NotificationType.TASK_ASSIGNED,
+  [NotificationType.TASK_COMPLETED]: NotificationType.TASK_COMPLETED,
 };
 
 @Injectable()

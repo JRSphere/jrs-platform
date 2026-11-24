@@ -101,6 +101,40 @@ beforeEach(async () => {
 });
 
 describe('Task assignment notifications E2E', () => {
+  it('creates a completion notification when an assigned task is marked done', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+    await prisma.task.update({ where: { id: task.id }, data: { assigneeId, status: 'IN_PROGRESS' } });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/status`)
+      .send({ status: 'DONE' })
+      .expect(200);
+
+    const notification = await pollUntil(() => prisma.notification.findFirst({
+      where: { recipientId: assigneeId, referenceId: task.id },
+    }));
+    expect(notification).toMatchObject({
+      recipientId: assigneeId,
+      type: 'TASK_COMPLETED',
+      referenceId: task.id,
+      readAt: null,
+    });
+  });
+
+  it('does not create a completion notification for an unassigned task', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+    await prisma.task.update({ where: { id: task.id }, data: { status: 'IN_PROGRESS' } });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/status`)
+      .send({ status: 'DONE' })
+      .expect(200);
+
+    expect(await prisma.notification.count()).toBe(0);
+  });
+
   it('does not create a notification when the owner assigns a task to themselves', async () => {
     const project = await insertProject();
     const task = await insertTask(project.id);

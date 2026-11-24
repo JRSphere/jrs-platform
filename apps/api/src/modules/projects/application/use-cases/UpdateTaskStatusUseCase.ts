@@ -20,7 +20,9 @@ export class UpdateTaskStatusUseCase {
     task.changeStatus(input.status);
     const updated = await this.tasks.update(task);
     if (updated.status === TaskStatus.DONE) {
-      await this.events.publish(new TaskCompletedEvent(updated.id, updated.projectId));
+      await this.events.publish(
+        new TaskCompletedEvent(updated.id, updated.projectId, input.actorId, updated.assigneeId),
+      );
     }
     return this.toResponse(updated);
   }
