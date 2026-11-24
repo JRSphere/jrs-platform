@@ -86,6 +86,10 @@ describe('CreateTaskUseCase', () => {
     expect(events.published).toHaveLength(2);
     expect(events.published[0]).toBeInstanceOf(TaskCreatedEvent);
     expect(events.published[1]).toBeInstanceOf(TaskAssignedEvent);
+    expect(events.published[1]).toMatchObject({
+      actorId: 'owner-1',
+      assigneeId: 'user-1',
+    });
   });
 
   it('throws NotFoundException and performs no save or publish for an unknown project', async () => {

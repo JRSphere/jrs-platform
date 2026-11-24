@@ -70,6 +70,31 @@ describe('AssignTaskUseCase', () => {
     expect(result.assigneeId).toBe('user-1');
     expect(events.published).toHaveLength(1);
     expect(events.published[0]).toBeInstanceOf(TaskAssignedEvent);
+    expect(events.published[0]).toMatchObject({
+      taskId: task.id,
+      assigneeId: 'user-1',
+      actorId: 'owner-1',
+    });
+  });
+
+  it('publishes actorId equal to the input actor', async () => {
+    const project = Project.create({ name: 'Platform', ownerId: 'owner-1' });
+    const task = makeTask(project.id);
+    const tasks = new TaskRepositoryFake(task);
+    const events = new EventPublisherFake();
+
+    await new AssignTaskUseCase(
+      tasks, events, new TaskAccess(new ProjectRepositoryFake(project), tasks),
+    ).execute({
+      taskId: task.id,
+      actorId: 'owner-1',
+      assigneeId: 'owner-1',
+    });
+
+    expect(events.published[0]).toMatchObject({
+      actorId: 'owner-1',
+      assigneeId: 'owner-1',
+    });
   });
 
   it('rejects a blank assignee without publishing', async () => {

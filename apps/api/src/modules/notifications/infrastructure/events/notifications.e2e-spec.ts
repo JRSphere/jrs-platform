@@ -101,6 +101,18 @@ beforeEach(async () => {
 });
 
 describe('Task assignment notifications E2E', () => {
+  it('does not create a notification when the owner assigns a task to themselves', async () => {
+    const project = await insertProject();
+    const task = await insertTask(project.id);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${task.id}/assignee`)
+      .send({ assigneeId: ownerId })
+      .expect(200);
+
+    expect(await prisma.notification.count()).toBe(0);
+  });
+
   it('creates a notification when a task is assigned through the API', async () => {
     const project = await insertProject();
     const task = await insertTask(project.id);

@@ -60,6 +60,47 @@ describe('TaskAssignedListener', () => {
     }]);
   });
 
+  it('skips a notification when the actor assigns to themselves', async () => {
+    const createNotification = new CreateNotificationFake();
+    const listener = new TaskAssignedListener(createNotification);
+
+    await listener.handle({
+      taskId: 'task-1',
+      projectId: 'project-1',
+      assigneeId: 'owner-1',
+      actorId: 'owner-1',
+    });
+
+    expect(createNotification.calls).toEqual([]);
+  });
+
+  it('creates a notification when the actor differs from the assignee', async () => {
+    const createNotification = new CreateNotificationFake();
+    const listener = new TaskAssignedListener(createNotification);
+
+    await listener.handle({
+      taskId: 'task-1',
+      projectId: 'project-1',
+      assigneeId: 'assignee-1',
+      actorId: 'owner-1',
+    });
+
+    expect(createNotification.calls).toHaveLength(1);
+  });
+
+  it('creates a notification when actorId is missing', async () => {
+    const createNotification = new CreateNotificationFake();
+    const listener = new TaskAssignedListener(createNotification);
+
+    await listener.handle({
+      taskId: 'task-1',
+      projectId: 'project-1',
+      assigneeId: 'assignee-1',
+    });
+
+    expect(createNotification.calls).toHaveLength(1);
+  });
+
   it('ignores a missing assignee id without throwing', async () => {
     const createNotification = new CreateNotificationFake();
     const listener = new TaskAssignedListener(createNotification);

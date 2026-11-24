@@ -7,6 +7,7 @@ interface TaskAssignedPayload {
   taskId: string;
   projectId: string;
   assigneeId: string;
+  actorId?: string;
 }
 
 @Injectable()
@@ -30,6 +31,9 @@ export class TaskAssignedListener {
         this.logger.warn(
           `Ignoring TaskAssignedEvent with invalid ids: taskId=${String(payload?.taskId)}, assigneeId=${String(payload?.assigneeId)}`,
         );
+        return;
+      }
+      if (typeof payload.actorId === 'string' && payload.actorId === payload.assigneeId) {
         return;
       }
 
