@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createHttpClient } from "@/lib/api-client/http-client";
 import { env } from "@/lib/config/env";
 import { Card } from "@/components/ui/Card";
+import { PageShell } from "@/components/layout/PageShell";
 
 const api = createHttpClient({ baseURL: env.NEXT_PUBLIC_API_BASE_URL });
 
@@ -20,26 +21,44 @@ interface NotificationPage {
   total: number;
 }
 
+function authHeaders(): Record<string, string> | null {
+  const token = localStorage.getItem("jrs_token");
+  return token ? { Authorization: `Bearer ${token}` } : null;
+}
+
 export default function NotificationsPage() {
   const [items, setItems] = useState<Notification[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("jrs_token");
-    if (!token) {
+    const headers = authHeaders();
+    if (!headers) {
       setError("Sign in first to see notifications.");
       return;
     }
     api
-      .get<NotificationPage>("/api/v1/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get<NotificationPage>("/api/v1/notifications", { headers })
       .then((res) => setItems(res.data.items))
       .catch(() => setError("Could not load notifications. Your session may have expired."));
   }, []);
 
+  async function markRead(n: Notification) {
+    const headers = authHeaders();
+    if (!headers) return;
+    setBusyId(n.id);
+    try {
+      await api.patch(`/api/v1/notifications/${n.id}/read`, {}, { headers });
+      setItems((prev) => prev?.map((x) => (x.id === n.id ? { ...x, read: true } : x)) ?? null);
+    } catch {
+      setError("Could not mark the notification as read.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-6 py-16">
+    <PageShell>
       <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
       {error && <p className="opacity-70">{error}</p>}
       {!error && items === null && <p className="opacity-70">Loading…</p>}
@@ -48,10 +67,21 @@ export default function NotificationsPage() {
         {items?.map((n, i) => (
           <Card key={n.id} title={n.read ? "Read" : "New"} delayMs={i * 60}>
             <p className="text-sm opacity-80">{n.message}</p>
-            <p className="mt-2 text-xs opacity-50">{new Date(n.createdAt).toLocaleString()}</p>
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-xs opacity-50">{new Date(n.createdAt).toLocaleString()}</p>
+              {!n.read && (
+                <button
+                  className="jrs-btn jrs-btn-ghost text-sm"
+                  disabled={busyId === n.id}
+                  onClick={() => markRead(n)}
+                >
+                  Mark as read
+                </button>
+              )}
+            </div>
           </Card>
         ))}
       </div>
-    </main>
+    </PageShell>
   );
 }
