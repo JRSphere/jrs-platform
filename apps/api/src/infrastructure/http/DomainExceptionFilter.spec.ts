@@ -12,6 +12,7 @@ class TestDomainException extends DomainException {
 describe('DomainExceptionFilter', () => {
   it.each([
     ['VALIDATION_ERROR', 400],
+    ['UNAUTHORIZED', 401],
     ['NOT_FOUND', 404],
     ['CONFLICT', 409],
     ['OTHER', 500],

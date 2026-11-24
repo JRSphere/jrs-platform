@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from './infrastructure/http/auth/JwtAuthGuard';
 import { DomainExceptionFilter } from './infrastructure/http/DomainExceptionFilter';
+import { HttpExceptionFilter } from './infrastructure/http/HttpExceptionFilter';
 import { ProjectsModule } from './modules/projects/ProjectsModule';
 import { NotificationsModule } from './modules/notifications/NotificationsModule';
 import { IdentityModule } from './modules/identity/IdentityModule';
@@ -26,6 +27,7 @@ import { AppService } from './app.service';
   providers: [
     AppService,
     { provide: APP_FILTER, useClass: DomainExceptionFilter },
+    { provide: APP_FILTER, useClass: HttpExceptionFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
