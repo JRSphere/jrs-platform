@@ -31,7 +31,7 @@ export class DomainExceptionFilter implements ExceptionFilter<DomainException> {
         return 404;
       case 'CONFLICT':
         return 409;
-              case 'UNAUTHORIZED':
+      case 'UNAUTHORIZED':
         return 401;
       default:
         return 500;

@@ -45,6 +45,33 @@ afterAll(async () => {
 });
 
 describe('JWT authentication E2E', () => {
+  it('returns the unified validation body for an empty login body', async () => {
+    const response = await supertest(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({})
+      .expect(400);
+
+    expect(response.body).toMatchObject({
+      statusCode: 400,
+      error: 'VALIDATION_ERROR',
+      message: 'Validation failed',
+      details: expect.any(Array),
+    });
+  });
+
+  it('returns the unified unauthorized body without details', async () => {
+    const response = await supertest(app.getHttpServer())
+      .get('/api/v1/projects')
+      .expect(401);
+
+    expect(response.body).toMatchObject({
+      statusCode: 401,
+      error: 'UNAUTHORIZED',
+      message: expect.any(String),
+    });
+    expect(response.body).not.toHaveProperty('details');
+  });
+
   it('rejects requests without an Authorization header', async () => {
     await supertest(app.getHttpServer()).get('/api/v1/projects').expect(401);
   });
