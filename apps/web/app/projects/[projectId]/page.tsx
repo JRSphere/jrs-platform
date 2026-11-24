@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createHttpClient } from "@/lib/api-client/http-client";
 import { env } from "@/lib/config/env";
 import { Card } from "@/components/ui/Card";
+import { AddTaskForm } from "@/components/tasks/AddTaskForm";
 
 const api = createHttpClient({ baseURL: env.NEXT_PUBLIC_API_BASE_URL });
 
@@ -19,11 +20,8 @@ interface Task {
 interface TaskPage {
   items: Task[];
   total: number;
-  page: number;
-  limit: number;
 }
 
-// Mirrors the API's allowed transitions (TaskStatus.ts).
 const nextStatuses: Record<TaskStatus, TaskStatus[]> = {
   TODO: ["IN_PROGRESS"],
   IN_PROGRESS: ["TODO", "DONE"],
@@ -48,36 +46,40 @@ export default function ProjectTasksPage({
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const authHeader = useCallback(() => {
+  const load = useCallback(() => {
     const token = localStorage.getItem("jrs_token");
-    return token ? { Authorization: `Bearer ${token}` } : null;
-  }, []);
-
-  useEffect(() => {
-    const headers = authHeader();
-    if (!headers) {
+    if (!token) {
       setError("Sign in first.");
       return;
     }
     api
       .get<TaskPage>(`/api/v1/projects/${projectId}/tasks`, {
-        headers,
+        headers: { Authorization: `Bearer ${token}` },
         params: { page: 1, limit: 50 },
       })
-      .then((res) => setTasks(res.data.items))
+      .then((res) => {
+        setError(null);
+        setTasks(res.data.items);
+      })
       .catch(() => setError("Could not load tasks. Your session may have expired."));
-  }, [projectId, authHeader]);
+  }, [projectId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function move(task: Task, to: TaskStatus) {
-    const headers = authHeader();
-    if (!headers) return;
+    const token = localStorage.getItem("jrs_token");
+    if (!token) return;
     setBusyId(task.id);
     setError(null);
     try {
-      await api.patch(`/api/v1/tasks/${task.id}/status`, { status: to }, { headers });
-      setTasks((prev) =>
-        prev?.map((t) => (t.id === task.id ? { ...t, status: to } : t)) ?? null,
+      await api.patch(
+        `/api/v1/tasks/${task.id}/status`,
+        { status: to },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
+      setTasks((prev) => prev?.map((t) => (t.id === task.id ? { ...t, status: to } : t)) ?? null);
     } catch {
       setError(`Could not move "${task.title}" to ${labels[to]}.`);
     } finally {
@@ -87,24 +89,26 @@ export default function ProjectTasksPage({
 
   return (
     <main className="relative mx-auto max-w-5xl space-y-8 px-6 py-16">
-      <Link href="/projects" className="text-sm opacity-70 hover:opacity-100">
+      <Link href="/projects" className="text-sm opacity-70 no-underline hover:opacity-100">
         ← Back to projects
       </Link>
       <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
 
+      <AddTaskForm projectId={projectId} onCreated={load} />
+
       {error && <p className="text-sm text-red-400">{error}</p>}
       {!error && tasks === null && <p className="opacity-70">Loading…</p>}
-      {tasks?.length === 0 && <p className="opacity-70">No tasks in this project yet.</p>}
+      {tasks?.length === 0 && <p className="opacity-70">No tasks yet. Add the first one above.</p>}
 
       <div className="grid gap-6 md:grid-cols-3">
-        {columns.map((status) => (
-          <section key={status} className="space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-widest opacity-70">
-              {labels[status]} ({tasks?.filter((t) => t.status === status).length ?? 0})
-            </h2>
-            {tasks
-              ?.filter((t) => t.status === status)
-              .map((task, i) => (
+        {columns.map((status) => {
+          const inColumn = tasks?.filter((t) => t.status === status) ?? [];
+          return (
+            <section key={status} className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-widest opacity-70">
+                {labels[status]} ({inColumn.length})
+              </h2>
+              {inColumn.map((task, i) => (
                 <Card key={task.id} title={task.title} delayMs={i * 60}>
                   <div className="flex flex-wrap gap-2">
                     {nextStatuses[status].map((to) => (
@@ -120,8 +124,9 @@ export default function ProjectTasksPage({
                   </div>
                 </Card>
               ))}
-          </section>
-        ))}
+            </section>
+          );
+        })}
       </div>
     </main>
   );
