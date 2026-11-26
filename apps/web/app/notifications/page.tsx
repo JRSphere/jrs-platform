@@ -12,7 +12,7 @@ interface Notification {
   id: string;
   type: string;
   message: string;
-  read: boolean;
+  readAt: string | null;
   createdAt: string;
 }
 
@@ -48,8 +48,12 @@ export default function NotificationsPage() {
     if (!headers) return;
     setBusyId(n.id);
     try {
-      await api.patch(`/api/v1/notifications/${n.id}/read`, {}, { headers });
-      setItems((prev) => prev?.map((x) => (x.id === n.id ? { ...x, read: true } : x)) ?? null);
+      const res = await api.patch<{ readAt: string | null }>(
+        `/api/v1/notifications/${n.id}/read`, {}, { headers },
+      );
+      setItems((prev) => prev?.map((x) =>
+        (x.id === n.id ? { ...x, readAt: res.data.readAt } : x),
+      ) ?? null);
     } catch {
       setError("Could not mark the notification as read.");
     } finally {
@@ -65,11 +69,11 @@ export default function NotificationsPage() {
       {items?.length === 0 && <p className="opacity-70">You're all caught up.</p>}
       <div className="space-y-4">
         {items?.map((n, i) => (
-          <Card key={n.id} title={n.read ? "Read" : "New"} delayMs={i * 60}>
+          <Card key={n.id} title={n.readAt === null ? "New" : "Read"} delayMs={i * 60}>
             <p className="text-sm opacity-80">{n.message}</p>
             <div className="mt-3 flex items-center justify-between">
               <p className="text-xs opacity-50">{new Date(n.createdAt).toLocaleString()}</p>
-              {!n.read && (
+              {n.readAt === null && (
                 <button
                   className="jrs-btn jrs-btn-ghost text-sm"
                   disabled={busyId === n.id}
