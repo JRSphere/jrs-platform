@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { Logger } from '@nestjs/common';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { INotificationRepository } from '../../application/ports/INotificationRepository';
 import { CreateNotificationUseCase } from '../../application/use-cases/CreateNotificationUseCase';
 import { CreateNotificationDto } from '../../application/dto/CreateNotificationDto';
@@ -42,6 +44,19 @@ class CreateNotificationFake extends CreateNotificationUseCase {
 }
 
 describe('TaskCompletedListener', () => {
+  let logWarn: MockInstance<typeof Logger.prototype.warn>;
+  let logError: MockInstance<typeof Logger.prototype.error>;
+
+  beforeEach(() => {
+    logWarn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    logError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarn.mockRestore();
+    logError.mockRestore();
+  });
+
   it('creates a notification for the assignee', async () => {
     const createNotification = new CreateNotificationFake();
     await new TaskCompletedListener(createNotification).handle({
@@ -90,6 +105,9 @@ describe('TaskCompletedListener', () => {
       assigneeId: 'assignee-1',
     });
     expect(createNotification.calls).toEqual([]);
+    expect(logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('Ignoring TaskCompletedEvent with invalid taskId'),
+    );
   });
 
   it('does not throw when notification creation fails', async () => {
@@ -100,5 +118,8 @@ describe('TaskCompletedListener', () => {
       assigneeId: 'assignee-1',
     })).resolves.toBeUndefined();
     expect(createNotification.calls).toHaveLength(1);
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to create task completion notification'),
+    );
   });
 });

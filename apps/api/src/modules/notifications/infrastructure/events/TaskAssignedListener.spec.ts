@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { Logger } from '@nestjs/common';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { INotificationRepository } from '../../application/ports/INotificationRepository';
 import { CreateNotificationUseCase } from '../../application/use-cases/CreateNotificationUseCase';
 import { CreateNotificationDto } from '../../application/dto/CreateNotificationDto';
@@ -42,6 +44,19 @@ class CreateNotificationFake extends CreateNotificationUseCase {
 }
 
 describe('TaskAssignedListener', () => {
+  let logWarn: MockInstance<typeof Logger.prototype.warn>;
+  let logError: MockInstance<typeof Logger.prototype.error>;
+
+  beforeEach(() => {
+    logWarn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    logError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarn.mockRestore();
+    logError.mockRestore();
+  });
+
   it('creates a notification for the assignee referencing the task', async () => {
     const createNotification = new CreateNotificationFake();
     const listener = new TaskAssignedListener(createNotification);
@@ -107,6 +122,9 @@ describe('TaskAssignedListener', () => {
 
     await expect(listener.handle({ taskId: 'task-1', projectId: 'project-1' })).resolves.toBeUndefined();
     expect(createNotification.calls).toEqual([]);
+    expect(logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('Ignoring TaskAssignedEvent with invalid ids'),
+    );
   });
 
   it('ignores a blank task id without throwing', async () => {
@@ -119,6 +137,9 @@ describe('TaskAssignedListener', () => {
       assigneeId: 'assignee-1',
     })).resolves.toBeUndefined();
     expect(createNotification.calls).toEqual([]);
+    expect(logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('Ignoring TaskAssignedEvent with invalid ids'),
+    );
   });
 
   it('does not throw when notification creation fails', async () => {
@@ -132,5 +153,8 @@ describe('TaskAssignedListener', () => {
       assigneeId: 'assignee-1',
     })).resolves.toBeUndefined();
     expect(createNotification.calls).toHaveLength(1);
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to create task assignment notification'),
+    );
   });
 });
