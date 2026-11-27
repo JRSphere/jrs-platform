@@ -1,5 +1,6 @@
 import { ArgumentsHost, Logger } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { CatchAllExceptionFilter } from './CatchAllExceptionFilter';
 
 function capture(exception: unknown) {
@@ -29,6 +30,16 @@ const expectedResponse = {
 };
 
 describe('CatchAllExceptionFilter', () => {
+  let logError: MockInstance<typeof Logger.prototype.error>;
+
+  beforeEach(() => {
+    logError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logError.mockRestore();
+  });
+
   it('returns the fixed 500 body for an Error', () => {
     expect(capture(new Error('database password leaked'))).toEqual({
       statusCode: 500,
@@ -49,14 +60,14 @@ describe('CatchAllExceptionFilter', () => {
     });
   });
 
-  it('logs the Error stack with the filter class context', () => {
-    const logError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
-    try {
-      const error = new Error('failure');
-      capture(error);
-      expect(logError).toHaveBeenCalledWith(error.stack);
-    } finally {
-      logError.mockRestore();
-    }
+  it('logs the Error stack', () => {
+    const error = new Error('failure');
+    capture(error);
+    expect(logError).toHaveBeenCalledWith(error.stack);
+  });
+
+  it('logs the string form of a non-Error thrown value', () => {
+    capture('unexpected string');
+    expect(logError).toHaveBeenCalledWith('unexpected string');
   });
 });
