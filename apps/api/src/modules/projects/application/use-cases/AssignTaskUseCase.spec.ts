@@ -45,6 +45,12 @@ class TaskRepositoryFake implements ITaskRepository {
   async delete(): Promise<void> {}
 }
 
+class TaskRepositoryReturningUnassignedFake extends TaskRepositoryFake {
+  async update(task: Task): Promise<Task> {
+    return makeTask(task.projectId);
+  }
+}
+
 class EventPublisherFake implements IEventPublisher {
   readonly published: object[] = [];
   async publish(event: object): Promise<void> { this.published.push(event); }
@@ -95,6 +101,19 @@ describe('AssignTaskUseCase', () => {
       actorId: 'owner-1',
       assigneeId: 'owner-1',
     });
+  });
+
+  it('throws when the repository returns a task without an assignee, and publishes nothing', async () => {
+    const project = Project.create({ name: 'Platform', ownerId: 'owner-1' });
+    const task = makeTask(project.id);
+    const tasks = new TaskRepositoryReturningUnassignedFake(task);
+    const events = new EventPublisherFake();
+
+    await expect(new AssignTaskUseCase(
+      tasks, events, new TaskAccess(new ProjectRepositoryFake(project), tasks),
+    ).execute({ taskId: task.id, actorId: 'owner-1', assigneeId: 'user-1' }))
+      .rejects.toThrow('Assigned task is missing its assignee');
+    expect(events.published).toHaveLength(0);
   });
 
   it('rejects a blank assignee without publishing', async () => {
