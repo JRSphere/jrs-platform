@@ -81,7 +81,7 @@ beforeEach(async () => {
 });
 
 describe('Projects HTTP API', () => {
-  it('documents exactly the projects and tasks routes in OpenAPI', async () => {
+  it('documents exactly the projects, tasks, notifications and auth routes in OpenAPI', async () => {
     const response = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
     const pathMethods = Object.entries(response.body.paths).flatMap(([path, operations]) =>
       Object.keys(operations as Record<string, unknown>).map((method) => `${method.toUpperCase()} ${path}`),
@@ -98,6 +98,8 @@ describe('Projects HTTP API', () => {
       'PATCH /api/v1/tasks/{taskId}',
       'PATCH /api/v1/tasks/{taskId}/assignee',
       'PATCH /api/v1/tasks/{taskId}/status',
+      'POST /api/v1/auth/login',
+      'POST /api/v1/auth/register',
       'POST /api/v1/projects',
       'POST /api/v1/projects/{projectId}/tasks',
     ]);
