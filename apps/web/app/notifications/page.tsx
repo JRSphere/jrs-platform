@@ -92,6 +92,7 @@ export default function NotificationsPage() {
       setItems((prev) => prev?.map((x) =>
         (x.id === n.id ? { ...x, readAt: res.data.readAt } : x),
       ) ?? null);
+      window.dispatchEvent(new Event("jrs:notifications-changed"));
     } catch {
       setError("Could not mark the notification as read.");
     } finally {
