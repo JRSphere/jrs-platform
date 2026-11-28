@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { PageShell } from "@/components/layout/PageShell";
 
 const api = createHttpClient({ baseURL: env.NEXT_PUBLIC_API_BASE_URL });
+const PAGE_SIZE = 20;
 
 interface Notification {
   id: string;
@@ -19,6 +20,8 @@ interface Notification {
 interface NotificationPage {
   items: Notification[];
   total: number;
+  page: number;
+  limit: number;
 }
 
 function authHeaders(): Record<string, string> | null {
@@ -30,6 +33,10 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<Notification[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
 
   useEffect(() => {
     const headers = authHeaders();
@@ -38,10 +45,41 @@ export default function NotificationsPage() {
       return;
     }
     api
-      .get<NotificationPage>("/api/v1/notifications", { headers })
-      .then((res) => setItems(res.data.items))
+      .get<NotificationPage>("/api/v1/notifications", {
+        headers,
+        params: { page: 1, limit: PAGE_SIZE },
+      })
+      .then((res) => {
+        setItems(res.data.items);
+        setPage(res.data.page);
+        setTotal(res.data.total);
+      })
       .catch(() => setError("Could not load notifications. Your session may have expired."));
   }, []);
+
+  async function loadMore() {
+    const headers = authHeaders();
+    if (!headers) return;
+    setLoadingMore(true);
+    setLoadMoreError(null);
+    try {
+      const res = await api.get<NotificationPage>(
+        "/api/v1/notifications",
+        { headers, params: { page: page + 1, limit: PAGE_SIZE } },
+      );
+      setItems((prev) => {
+        const existingIds = new Set(prev?.map((item) => item.id) ?? []);
+        const additions = res.data.items.filter((item) => !existingIds.has(item.id));
+        return [...(prev ?? []), ...additions];
+      });
+      setPage(res.data.page);
+      setTotal(res.data.total);
+    } catch {
+      setLoadMoreError("Could not load more notifications.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function markRead(n: Notification) {
     const headers = authHeaders();
@@ -86,6 +124,18 @@ export default function NotificationsPage() {
           </Card>
         ))}
       </div>
+      {items !== null && page * PAGE_SIZE < total && (
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            className="jrs-btn jrs-btn-ghost text-sm"
+            disabled={loadingMore}
+            onClick={loadMore}
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+          {loadMoreError && <p className="text-sm opacity-70">{loadMoreError}</p>}
+        </div>
+      )}
     </PageShell>
   );
 }
